@@ -1,0 +1,45 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "1. Design — Entry Point",
+      "description": "Mandatory starting point. Turns a vague request into a structured engineering project by enforcing the 7-category Brief before any artifact is built.",
+      "skills": [
+        "arch-distro-design"
+      ]
+    },
+    {
+      "title": "2. Construction — Build the Artifacts",
+      "description": "Produce the three independent artifacts: the live ISO (archiso), the persistent .img appliance (EFI+SYS+DATA), and the offline signed pacman repository embedded in the ISO.",
+      "skills": [
+        "arch-iso-builder",
+        "arch-appliance-img",
+        "arch-frozen-repo"
+      ]
+    },
+    {
+      "title": "3. Payloads & Desktop — Extend the System",
+      "description": "Declare and materialize app payloads from their own repositories (never vendorized), and choose the graphical layer from L0 (console-only) to L6 (GNOME/KDE).",
+      "skills": [
+        "arch-payload-manifest",
+        "arch-desktop-layers"
+      ]
+    },
+    {
+      "title": "4. Validation — Gates Before Real Hardware",
+      "description": "Two mandatory gates: QEMU validation (15 ISO checks, 13 .img checks) and safe physical hardware writes. No artifact reaches a real disk without passing both.",
+      "skills": [
+        "arch-qemu-validation",
+        "arch-hardware-handler"
+      ]
+    },
+    {
+      "title": "5. Knowledge Base — Memory of Real Failures",
+      "description": "A living, dated catalog of real errors found while building Arch ISOs and appliances (community 404, DisableDownloadTimeout, error -71, SDDM hangs, etc.). Consulted before every build.",
+      "skills": [
+        "arch-archlinux-pitfalls"
+      ]
+    }
+  ]
+}
