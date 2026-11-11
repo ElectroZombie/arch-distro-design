@@ -230,9 +230,9 @@ No SLA for custom builds, but substantive questions usually get answered quickly
 
 ## License
 
-**Personal and internal commercial use allowed. Redistribution, resale, or repackaging as a competing skill pack is not permitted without explicit permission.**
+**MIT** — see [`LICENSE`](./LICENSE).
 
-See [`LICENSE`](./LICENSE) for the full text.
+**Resale note:** MIT permits use in your own projects, including commercial ones. Redistribution or resale of this skill pack as a standalone product or competing pack is not permitted.
 
 ---
 
