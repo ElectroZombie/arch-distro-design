@@ -10,6 +10,9 @@
 - The repository harness is complete: `AGENTS.md`, `feature_list.json`,
   `progress.md`, `session-handoff.md`, `init.sh`, and
   `scripts/validate-pack.mjs`.
+- All nine skills now carry the same harness contract: `## Startup Workflow`,
+  `## Scope`, `## Verification`, `## Definition of Done`, `## State & Evidence`
+  and `## Handoff`, in that order.
 - Harness audit score: **100/100** across all five subsystems (was 20/100).
 
 ## What Changed
@@ -17,10 +20,17 @@
 - Introduced the five harness subsystems: instructions, state, verification,
   scope, and lifecycle.
 - Added a dependency-free validator that checks frontmatter, name/directory
-  agreement, `skills.sh.json` consistency, English-only content, and README
-  coverage.
+  agreement, `skills.sh.json` consistency, English-only content, README
+  coverage, and the skill contract (presence, order, and a fail-fast
+  `Verification` script).
 - Wired `./init.sh` as the single startup and verification entrypoint.
-- Documented the harness in `README.md` and recorded it in `CHANGELOG.md`.
+- Applied the contract to all nine skills: each gained an entry path, an
+  explicit in/out-of-scope boundary with a delegation table, a fail-fast
+  verification script, a definition-of-done checklist, and a state/evidence
+  table. Existing validation and handoff sections were folded into the
+  contract so the pack reads identically end to end.
+- Documented the harness and the skill contract in `README.md`, `AGENTS.md`
+  and `CHANGELOG.md`.
 
 ## Next
 
@@ -31,7 +41,7 @@
 
 ## Verification Evidence
 
-- `./init.sh` → `OK — all 95 checks passed.`
+- `./init.sh` → `OK — all 212 checks passed.` (was 95 before the contract).
 - `node ~/.agents/skills/harness-creator/scripts/validate-harness.mjs --target .`
   → `Overall: 100/100`, bottleneck `none`.
 

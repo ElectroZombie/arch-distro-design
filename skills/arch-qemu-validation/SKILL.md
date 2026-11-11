@@ -18,6 +18,28 @@ Prevent build errors from reaching real hardware. QEMU allows you to:
 - Test graceful shutdown (lesson: never `kill -9`).
 - Automate checks with shell/python scripts.
 
+## Startup Workflow
+
+1. **Confirm the artifact** — the `.iso` or `.img` exists and `sha256sum -c` passes.
+2. **Prepare the host** — `qemu-desktop`, `edk2-ovmf` and `archiso` installed; a fresh writable OVMF vars copy per run.
+3. **Set the parameters** — RAM, expected sizes, time zone and disk label come from the Brief.
+4. **Run the applicable checklist** — §A.2 (15 ISO checks) or §B.2 (13 `.img` checks).
+5. **Shut down gracefully** — QMP `system_powerdown`, then `sync`.
+6. **Record the evidence** — see [State & Evidence](#state--evidence).
+
+## Scope
+
+**In scope:** repeatable validation of boot, partitioning, systemd, serial console, SSH, package sync, and graceful shutdown inside QEMU.
+
+**Out of scope:** building the artifacts, and writing to physical media.
+
+| Out of scope | Delegate to |
+|---|---|
+| Building the ISO | `arch-iso-builder` |
+| Building the `.img` appliance | `arch-appliance-img` |
+| Writing to a real USB drive | `arch-hardware-handler` |
+| Choosing the graphical layer | `arch-desktop-layers` |
+
 ## Host requirements
 
 ```bash
@@ -37,6 +59,39 @@ sudo pacman -S --needed qemu-desktop edk2-ovmf archiso
 | `RAM_IMG` | RAM assigned to the .img in MB | `1024` |
 | `TIMEZONE` | Expected time zone for check #14 | `America/Havana` |
 | `DISK_LABEL` | DATA partition label for check #11 | `DATA` |
+
+## Verification
+
+This skill **is** the verification gate. Run the environment pre-flight first,
+then the full checklist for the artifact type.
+
+```bash
+set -euo pipefail
+
+ARTIFACT="${1:?usage: verify-qemu.sh <iso-or-img>}"
+
+# 1. The artifact exists and its checksum matches
+test -f "$ARTIFACT"
+sha256sum -c out/SHA256SUMS
+
+# 2. The QEMU toolchain is present
+command -v qemu-system-x86_64 >/dev/null
+test -f /usr/share/edk2/x64/OVMF_CODE.4m.fd
+test -f /usr/share/edk2/x64/OVMF_VARS.4m.fd
+
+# 3. A fresh writable OVMF vars copy (a shared one gets corrupted by QEMU)
+cp /usr/share/edk2/x64/OVMF_VARS.4m.fd "/tmp/ovmf-vars-$$.fd"
+
+echo "✅ QEMU environment ready"
+```
+
+| Artifact | Checklist | Items |
+|---|---|---|
+| Live ISO | §A.2 | 15 |
+| `.img` appliance | §B.2 | 13 |
+
+> A single failing check blocks the artifact. Fix the cause, rebuild, and run
+> the **whole** checklist again — a partial rerun proves nothing.
 
 ## A. Live ISO validation
 
@@ -283,7 +338,33 @@ while True:
 | `appliance-update` service | ❌ (ISO build only) | ✅ (in the .img) |
 | `pacman -Sy` without a 404 | ✅ | ❌ (installed system, not live) |
 
-## Handoff to other skills in the group
+## Definition of Done
+
+- [ ] Every check in the applicable checklist passed (§A.2 for the ISO, §B.2 for the `.img`).
+- [ ] Checksum verified with `sha256sum -c out/SHA256SUMS`.
+- [ ] `pacman -Sy` inside the live completed **without** a `community.db` 404.
+- [ ] The package install test (check 8) succeeded — the frozen repo is signed and installable.
+- [ ] The three mount points resolve as `ext4` + `ext4` + `DATA`.
+- [ ] The network policy holds: `systemd-networkd` is `inactive` unless the admin enabled it.
+- [ ] QEMU was shut down **gracefully** via QMP `system_powerdown` — never `kill -9`.
+- [ ] `sync` executed after QEMU exited.
+- [ ] Evidence recorded per artifact (§B.5) and committed.
+- [ ] The artifact was **not** committed while any check was failing.
+
+## State & Evidence
+
+| State | Where it lives |
+|---|---|
+| The artifact under test | `out/*.iso`, `out/appliance-*.img` |
+| Checksums | `out/SHA256SUMS` |
+| ISO checklist result (15 items) | §A.2, recorded per build |
+| Appliance checklist result (13 items) | §B.2, recorded per build |
+| Evidence log | §B.5 — sha256, date, checklist result |
+| Pinned versions | `out/versions.txt` |
+
+Record the evidence: the **command** you ran and its **output** — the `✅ QEMU environment ready` line, the completed checklist table, and the artifact's SHA256.
+
+## Handoff
 
 | If you touch... | Go to |
 |---|---|

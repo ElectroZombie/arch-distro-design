@@ -147,8 +147,25 @@ Run the full verification before and after any change:
 ```
 
 `init.sh` fails fast (`set -e`) and checks frontmatter, skill naming,
-`skills.sh.json` consistency, English-only content, and README coverage — 95
-assertions, zero external dependencies.
+`skills.sh.json` consistency, English-only content, README coverage, and the
+skill contract below — 212 assertions, zero external dependencies.
+
+### Skill harness contract
+
+Every one of the nine skills exposes the same six sections, in the same order,
+so an agent enters, scopes, verifies, closes and resumes them identically:
+
+| Section | Purpose |
+| :--- | :--- |
+| `## Startup Workflow` | The entry path, from precondition to handoff. |
+| `## Scope` | What the skill owns — and what it delegates. |
+| `## Verification` | A runnable, fail-fast gate with a `✅` marker. |
+| `## Definition of Done` | The checklist that closes the skill. |
+| `## State & Evidence` | Where the state lives and what evidence to record. |
+| `## Handoff` | Which skill runs next, and when. |
+
+`./init.sh` fails if a skill is missing one of them, if they are out of order,
+or if the `Verification` block is not a fail-fast script.
 
 ---
 

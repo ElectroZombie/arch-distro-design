@@ -43,6 +43,14 @@
       "evidence": "Harness audit scored 100/100 across all five subsystems; ./init.sh passes 95 structural assertions."
     },
     {
+      "id": "FEAT-009",
+      "name": "Skill harness contract",
+      "description": "Apply the five-subsystem harness contract to all nine skills: Startup Workflow, Scope, Verification, Definition of Done, State & Evidence and Handoff, in a fixed order, enforced by the validator.",
+      "status": "done",
+      "dependencies": ["FEAT-005"],
+      "evidence": "All nine skills carry the six contract sections in order; ./init.sh passes 212 assertions including the new contract checks."
+    },
+    {
       "id": "FEAT-006",
       "name": "CI validation workflow",
       "description": "Add a GitHub Actions workflow that runs ./init.sh on every push and pull request.",

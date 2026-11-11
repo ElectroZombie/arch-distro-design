@@ -19,6 +19,27 @@ appliance when it is installed.
 This keeps the builder generic: one ISO serves N different apps, and updating an
 app does not force a rebuild of the ISO.
 
+## Startup Workflow
+
+1. **Confirm the manifest** — `apps/<slug>/app.conf` exists and declares `NAME`, `VERSION` and `SOURCE`.
+2. **Validate the keys** — run the checks in [Verification](#verification) before touching the appliance.
+3. **Materialize on the appliance** — clone `SOURCE@SOURCE_REF` into `/data/apps/<slug>/src`.
+4. **Wire the service** — write the systemd unit and enable it.
+5. **Prove it runs** — the healthcheck must pass on the appliance.
+
+## Scope
+
+**In scope:** the manifest format, the pure-bash parser, runtime selection, database selection, volume mapping, and the systemd unit of the payload.
+
+**Out of scope:** the app's own source code (it lives in the app's repo), the appliance image, and the frozen package repo.
+
+| Out of scope | Delegate to |
+|---|---|
+| The appliance image and its installation | `arch-appliance-img` |
+| Signed offline package repo | `arch-frozen-repo` |
+| Graphical layer for the payload's UI | `arch-desktop-layers` |
+| Boot tests of the container | `arch-qemu-validation` |
+
 ## Manifest format
 
 `KEY=VALUE`, one key per line, parseable with **pure bash** (no `jq`, `yq`, or
@@ -219,7 +240,47 @@ apps/
     └── app.conf        # ONLY the manifest — the code is NOT here
 ```
 
-## Validation
+## Verification
+
+Run on the manifest before installing anything. The script fails fast on the
+first problem.
+
+```bash
+set -euo pipefail
+
+MANIFEST="${1:?usage: verify-payload.sh <app.conf>}"
+
+# Load the manifest with the pure-bash parser (no jq/yq/python)
+source ./load-manifest.sh
+load_manifest "$MANIFEST"
+
+# 1. Mandatory keys are present
+for key in NAME VERSION SOURCE; do
+  [[ -n "${MANIFEST[$key]:-}" ]] || { echo "❌ missing key: $key" >&2; exit 1; }
+done
+
+# 2. The runtime is supported
+case "${MANIFEST[RUNTIME]:-native}" in
+  native|nspawn|podman) ;;
+  *) echo "❌ unsupported RUNTIME: ${MANIFEST[RUNTIME]}" >&2; exit 1 ;;
+esac
+
+# 3. Persistent data lives under /data (never on a rw COW layer)
+case "${MANIFEST[DATA_DIR]:-/data}" in
+  /data/*) ;;
+  *) echo "❌ DATA_DIR must be under /data" >&2; exit 1 ;;
+esac
+
+# 4. An external database requires its URL
+if [[ "${MANIFEST[DATABASE]:-}" == "external" ]]; then
+  [[ -n "${MANIFEST[DATABASE_URL]:-}" ]] || { echo "❌ DATABASE_URL is required" >&2; exit 1; }
+fi
+
+# 5. SOURCE is reachable — the code is pulled, never vendored
+curl -fsI "${MANIFEST[SOURCE]}" >/dev/null
+
+echo "✅ Payload manifest verified"
+```
 
 | Check | Command | Expected |
 |---|---|---|
@@ -229,7 +290,31 @@ apps/
 | DATA_DIR under /data | `${MANIFEST[DATA_DIR]}` starts with `/data` | true |
 | Healthcheck defined | `${MANIFEST[HEALTHCHECK]}` not empty | URL or cmd |
 
-## Handoff to other skills in the group
+## Definition of Done
+
+- [ ] Manifest declares `NAME`, `VERSION` and `SOURCE`.
+- [ ] `SOURCE` is a remote repo — no app code is vendored in this repository.
+- [ ] `RUNTIME` is `native`, `nspawn` or `podman` and matches the Brief.
+- [ ] `DATA_DIR` is under `/data`; no database data on a rw COW layer.
+- [ ] `DATABASE=external` implies a `DATABASE_URL`.
+- [ ] `podman` installed **only** when the manifest declares `RUNTIME=podman`.
+- [ ] systemd unit written with `WorkingDirectory=/opt/<app-slug>` (no spaces, no quotes).
+- [ ] Healthcheck defined and passing on the appliance.
+- [ ] Service enabled and running: `systemctl enable --now app-<slug>.service`.
+
+## State & Evidence
+
+| State | Where it lives |
+|---|---|
+| The manifest | `apps/<slug>/app.conf` |
+| Materialized source | `/data/apps/<slug>/src` (on the appliance) |
+| systemd unit | `app-<slug>.service` (on the appliance) |
+| Persistent data | `/data/apps/<slug>` (DATA partition) |
+| App version | `MANIFEST[VERSION]`, recorded in the update log |
+
+Record the evidence: the **command** you ran and its **output** — the `✅ Payload manifest verified` line, the healthcheck response, and the installed version.
+
+## Handoff
 
 | If you touch... | Go to |
 |---|---|

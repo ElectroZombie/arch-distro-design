@@ -9,6 +9,28 @@ description: 'Living catalog of real errors encountered while building Arch Linu
 > Linux distributions based on the `arch-distro-design` skill. Any agent or user
 > building an Arch ISO/appliance must review this before starting the build.
 
+## Startup Workflow
+
+1. **Consult before building** — read the entries that match the stage you are about to run.
+2. **Profile errors first** — `realpath`, boot modes, `[community]`, `DisableDownloadTimeout`.
+3. **Install errors next** — `mkinitcpio`, overlay permissions, `/etc/shadow`.
+4. **Hardware errors last** — `error -71`, `bad journal`, wrong disk.
+5. **Record what you hit** — a new real failure is added here with its cause and its fix.
+
+## Scope
+
+**In scope:** the empirical catalog of real, dated failures — what broke, why, and the fix.
+
+**Out of scope:** the design decisions, the build steps themselves, and the validation gates.
+
+| Out of scope | Delegate to |
+|---|---|
+| Deciding the artifact and the layers | `arch-distro-design` |
+| Building the ISO | `arch-iso-builder` |
+| Building the `.img` appliance | `arch-appliance-img` |
+| Boot tests in QEMU | `arch-qemu-validation` |
+| Physical media writes | `arch-hardware-handler` |
+
 ## Design errors and an incomplete Brief
 
 ### 1. Incomplete Brief
@@ -285,3 +307,66 @@ from a `getty@tty1` autologin.
 
 **Rule:** A design that does not complete the **mandatory Brief** **must not**
 advance to the construction phase.
+
+## Verification
+
+The catalog is only useful if it is complete and current. Run this before
+starting a build, and again after recording a new failure.
+
+```bash
+set -euo pipefail
+
+CATALOG="skills/arch-archlinux-pitfalls/SKILL.md"
+
+# 1. Every entry is numbered, and there are enough of them
+entries="$(grep -c '^### [0-9]' "$CATALOG")"
+[[ "$entries" -ge 18 ]] || { echo "❌ expected >= 18 entries, found $entries" >&2; exit 1; }
+
+# 2. The classic failures are all still present
+for known in 'realpath' 'boot mode' 'community.db' 'DisableDownloadTimeout' \
+              'error -71' 'mkinitcpio-archiso' 'customize_airootfs.sh'; do
+  grep -qi "$known" "$CATALOG" || { echo "❌ missing known failure: $known" >&2; exit 1; }
+done
+
+# 3. Entries are dated so they can be aged
+grep -q '📏' "$CATALOG"
+
+echo "✅ Pitfalls catalog verified ($entries entries)"
+```
+
+| Check | Expected |
+|---|---|
+| Entry count | ≥ 18 numbered entries |
+| Known failures present | realpath, boot modes, community 404, DisableDownloadTimeout, error -71, mkinitcpio-archiso, customize_airootfs.sh |
+| Dating | at least one entry carries the 📏 marker and a date |
+| Structure | every entry has a context, a cause and a solution (or their equivalent) |
+
+## Definition of Done
+
+- [ ] The new failure is recorded with its context, its cause and its fix.
+- [ ] The entry is numbered and dated (📏 YYYY-MM-DD).
+- [ ] The affected skills are cross-referenced — the entry says which skill must now check it.
+- [ ] The "Common errors" table of the affected skill points at the new entry.
+- [ ] The catalog still passes the verification script.
+
+## State & Evidence
+
+| State | Where it lives |
+|---|---|
+| The catalog itself | `skills/arch-archlinux-pitfalls/SKILL.md` |
+| Cross-references from other skills | the "Common errors" tables of the affected skills |
+| Build evidence behind an entry | the relevant artifact's checklist result |
+| Pinned versions at the time of the failure | `out/versions.txt` |
+
+Record the evidence: the **command** you ran and its **output** — the `✅ Pitfalls catalog verified (N entries)` line plus the entry number and date you added.
+
+## Handoff
+
+| If you are touching... | Go to |
+|---|---|
+| The design and the Brief | `arch-distro-design` |
+| The ISO build | `arch-iso-builder` |
+| The `.img` appliance | `arch-appliance-img` |
+| The frozen repo | `arch-frozen-repo` |
+| Boot tests | `arch-qemu-validation` |
+| Physical media writes | `arch-hardware-handler` |

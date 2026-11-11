@@ -35,6 +35,30 @@ packages go in the live system versus the frozen repo, and runs `mkarchiso`.
 - The profile must pass `mkarchiso --validate` before building.
 - A custom `airootfs/` overlay must be injected.
 
+## Startup Workflow
+
+1. **Confirm the Brief** — `arch-distro-design` has already answered all 7 categories. If not, stop and ask for them.
+2. **Confirm the host** — the build host must be Arch, and `archiso 91-1` must be installed.
+3. **Build the profile** — `profiledef.sh`, `packages.x86_64`, `pacman.conf`, `airootfs/` overlay.
+4. **Verify the profile** — run the checks in [Verification](#verification) before calling `mkarchiso`.
+5. **Build and freeze** — run `mkarchiso`, then write `out/SHA256SUMS`.
+6. **Record the evidence** — see [State & Evidence](#state--evidence).
+
+## Scope
+
+**In scope:** the archiso profile, the package selection, the `airootfs/` overlay, the boot modes, and running `mkarchiso`.
+
+**Out of scope:** the `.img` appliance, the frozen repo contents, the payload materialization, and the desktop layer choice.
+
+| Out of scope | Delegate to |
+|---|---|
+| Partitioning, `.img`, systemd units | `arch-appliance-img` |
+| Building the signed offline repo | `arch-frozen-repo` |
+| App manifest, runtime, database | `arch-payload-manifest` |
+| Choosing the graphical layer | `arch-desktop-layers` |
+| Boot tests in QEMU | `arch-qemu-validation` |
+| Writing to physical media | `arch-hardware-handler` |
+
 ## Produced artifacts
 
 | Output | Description |
@@ -183,17 +207,71 @@ rm -rf -- "$WORKDIR"
 sha256sum out/*.iso > out/SHA256SUMS
 ```
 
-## Pre-build validation
+## Verification
+
+Run before `mkarchiso`. The script fails fast on the first problem.
+
+```bash
+set -euo pipefail
+
+PROFILE="builder/arch-profile"
+
+# 1. The profile has every mandatory file
+test -f "$PROFILE/profiledef.sh"
+test -f "$PROFILE/packages.x86_64"
+test -f "$PROFILE/pacman.conf"
+test -f "$PROFILE/bootstrap_packages.x86_64"   # must exist even if empty
+
+# 2. No [community] repo (merged into extra on 2026-11-09 → 404)
+! grep -Rqs '^\[community\]' "$PROFILE"
+
+# 3. Only documented boot modes (archiso 91-1)
+grep -q 'bootmodes=' "$PROFILE/profiledef.sh"
+! grep -qE '\.(esp|mbr|eltorito)' "$PROFILE/profiledef.sh"
+
+# 4. The host mirrorlist is never inherited
+! grep -qs 'Include *= */etc/pacman.d/mirrorlist' "$PROFILE/pacman.conf"
+
+# 5. Work dir and out dir exist before mkarchiso
+mkdir -p /var/tmp/archiso-work "$PWD/out"
+
+echo "✅ Profile is valid for mkarchiso"
+```
 
 | Check | Command | Expected |
 |---|---|---|
-| Valid profile | `mkarchiso -v ... 2>&1 | head -10` | No ERROR, only INFO |
+| Valid profile | `mkarchiso -v ... 2>&1 \| head -10` | No ERROR, only INFO |
 | No community | `grep -R 'community' builder/arch-profile/` | absent |
 | Syslinux exists | `ls builder/arch-profile/syslinux/` | `.cfg` present |
 | UEFI exists | `ls builder/arch-profile/efiboot/loader/` | `loader.conf` present |
 | XferCommand ok | `grep XferCommand builder/arch-profile/pacman.conf` | has `curl` |
 
-## Handoff to other skills in the group
+## Definition of Done
+
+- [ ] Brief completed with all 7 categories **before** starting.
+- [ ] `profiledef.sh` declares every critical variable, with **relative** paths.
+- [ ] `bootstrap_packages.x86_64` exists (even if empty).
+- [ ] Package list holds only what the Brief's objective needs — no `base-devel`, no `calamares` unless explicitly requested.
+- [ ] `pacman.conf` uses explicit Arch mirrors, ≥ 5 servers per repo, and never `Include = /etc/pacman.d/mirrorlist`.
+- [ ] No `[community]` repo anywhere in the profile.
+- [ ] Boot modes limited to `bios.syslinux`, `uefi.grub`, `uefi.systemd-boot`.
+- [ ] Every executable in the `airootfs/` overlay is listed in `file_permissions`.
+- [ ] `mkarchiso` completed and produced `out/*.iso`.
+- [ ] `out/SHA256SUMS` written and re-verified with `sha256sum -c`.
+
+## State & Evidence
+
+| State | Where it lives |
+|---|---|
+| The build profile | `builder/arch-profile/` |
+| Package selection | `builder/arch-profile/packages.x86_64` |
+| Frozen-repo package list | `builder/repo-packages.txt` |
+| Built ISO and checksums | `out/*.iso`, `out/SHA256SUMS` |
+| Pinned versions | `out/versions.txt` (written by `arch-frozen-repo`) |
+
+Record the evidence: the **command** you ran and its **output** — the `✅ Profile is valid for mkarchiso` line, the tail of `mkarchiso`, and the SHA256 of the produced ISO.
+
+## Handoff
 
 | If you touch... | Go to |
 |---|---|

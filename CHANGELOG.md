@@ -23,6 +23,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subsystems, and an updated project structure tree.
 
 ### Changed
+- **All nine skills now follow the same harness contract.** Each `SKILL.md` gained
+  a `## Startup Workflow`, a `## Scope` (in scope / out of scope plus a
+  delegation table), a fail-fast `## Verification` script, a
+  `## Definition of Done` checklist, and a `## State & Evidence` table; the
+  existing validation and handoff sections were renamed and folded into the
+  contract so the order is identical across the pack.
+- `arch-iso-builder`: `## Pre-build validation` → `## Verification`.
+- `arch-appliance-img`: `### 8. Validation` → `## Verification`;
+  `### 9. Handoff` → `## Handoff`; `### 10. Common errors` → `## Common errors`.
+- `arch-frozen-repo`: `### 6. Validation` → `## Verification`.
+- `arch-payload-manifest`, `arch-desktop-layers`: `## Validation` → `## Verification`.
+- `arch-desktop-layers`: `## Desktop selection checklist` → `## Definition of Done`.
+- `arch-hardware-handler`: `## Versioning and traceability` → `## State & Evidence`.
+- `arch-archlinux-pitfalls`: gained the full contract plus a verification
+  script that checks the catalog is complete and still carries the classic
+  failures.
+- `scripts/validate-pack.mjs` now enforces the skill contract: the six
+  sections must be present, ordered, and the `Verification` block must be a
+  fail-fast bash script with a success marker. Assertions grew from 95 to 212.
 - The `Project Structure` tree in `README.md` now lists the harness files.
 
 ## [1.2.0] — 2026-11-11

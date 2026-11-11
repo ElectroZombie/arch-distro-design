@@ -29,6 +29,29 @@ hardware**. It is used to:
 - The `DATA` partition must be validated as correctly formed.
 - You want to confirm that the system will boot on the target hardware.
 
+## Startup Workflow
+
+1. **Confirm the artifact** — the `.iso` or `.img` exists and its checksum matches `SHA256SUMS`.
+2. **Identify the target** — `lsblk -o NAME,SIZE,MODEL`; confirm it is **not** the host root disk.
+3. **Validate compatibility** — UEFI firmware, virtio, serial console, free space.
+4. **Write safely** — `dd ... conv=fsync` followed by three `sync` calls.
+5. **Verify the write** — partition table, labels, and a boot test in BIOS and UEFI.
+6. **Record the evidence** — see [State & Evidence](#state--evidence).
+
+## Scope
+
+**In scope:** physical media writes, partition verification on real disks, hardware compatibility checks, and post-write validation.
+
+**Out of scope:** building artifacts, partitioning the appliance image, and running QEMU test suites.
+
+| Out of scope | Delegate to |
+|---|---|
+| Building the ISO | `arch-iso-builder` |
+| Building the `.img` appliance | `arch-appliance-img` |
+| Boot tests in QEMU | `arch-qemu-validation` |
+| "this hardware does not work" errors | `arch-archlinux-pitfalls` |
+| Specific payloads | `arch-payload-manifest` |
+
 ## Mandatory workflow
 
 ### 1. Pre-write validation
@@ -139,6 +162,76 @@ mkfs.ext4 -L DATA "${DESTINO}3"
 | Minimum space for ISO | `df -h /` | ≥ 5 GB free in work_dir |
 | Minimum space for .img | `df -h /` | ≥ 20 GB free |
 
+## Verification
+
+Run before writing to physical media and again after. The script fails fast on
+the first problem.
+
+```bash
+set -euo pipefail
+
+USB="${1:?usage: verify-hardware.sh <device> <iso-or-img>}"
+
+# 1. The device exists and is a block device
+[[ -b "$USB" ]] || { echo "❌ $USB is not a block device" >&2; exit 1; }
+
+# 2. It is NOT the host's root disk
+ROOT_DISK="$(findmnt -n -o SOURCE / | sed 's/[0-9]*$//')"
+[[ "$USB" != "$ROOT_DISK" ]] || { echo "❌ $USB is the host root disk" >&2; exit 1; }
+
+# 3. It is not currently mounted
+if mount | grep -q "^$USB"; then
+  echo "❌ $USB is mounted. Unmount it first." >&2; exit 1
+fi
+
+# 4. The artifact checksum matches
+sha256sum -c SHA256SUMS
+
+# 5. Enough space on the destination
+df -h .
+
+echo "✅ Target device validated"
+```
+
+| Check | Command | Expected |
+|---|---|---|
+| ISO/img file exists and size | `ls -lh <file>` | ~1.2 GB (ISO) or ~10 GB (.img) |
+| Checksum OK (if available) | `sha256sum -c SHA256SUMS` | `OK` |
+| Space on the destination disk | `df -h <destination_directory>` | Enough space |
+| Not writing to the host disk | `lsblk -o NAME,SIZE,MODEL` | Different from host `/dev/sda` |
+
+## Definition of Done
+
+- [ ] Target device identified with `lsblk` and confirmed **not** to be the host root disk.
+- [ ] Artifact checksum verified with `sha256sum -c SHA256SUMS`.
+- [ ] Write performed with `dd bs=4M ... conv=fsync`.
+- [ ] `sync` executed **three** times before unmounting or removing the media.
+- [ ] QEMU (if used) was shut down **gracefully** via QMP `system_powerdown` — never `kill -9`.
+- [ ] Post-write validation passed: GPT table, EFI/SYS/DATA labels, boot in BIOS and UEFI.
+- [ ] USB model and capacity recorded in `hardware-log.txt`.
+- [ ] Any incompatibility tagged as `hardware::incompatible` in the commit message.
+
+## State & Evidence
+
+| State | Where it is stored |
+|---|---|
+| USB model + capacity | `hardware-log.txt` in the project repo |
+| ISO/.img checksum | `SHA256SUMS` (already committed) |
+| `sync` success/failure | Comment in `docs/08-LECCIONES-APRENDIDAS.md` |
+| Incompatible hardware | Tag in the `git commit`: `hardware::incompatible` |
+
+Record the evidence: the **command** you ran and its **output** — the `✅ Target device validated` line, the `parted` table after the write, and the boot result.
+
+## Handoff
+
+| If you touch... | Go to |
+|---|---|
+| Writing the ISO to USB | `arch-iso-builder` |
+| Partitioning the .img from scratch | `arch-appliance-img` |
+| QEMU validation after writing | `arch-qemu-validation` |
+| "this hardware does not work" errors | `arch-archlinux-pitfalls` |
+| Specific payloads | `arch-payload-manifest` |
+
 ## Common errors and prevention
 
 | Error | Symptom | Prevention |
@@ -148,16 +241,6 @@ mkfs.ext4 -L DATA "${DESTINO}3"
 | `ffs: bad journal` on DATA | `mkfs.ext4` without `-L DATA` or without the `lba` flag | Exact syntax from this skill |
 | ISO does not boot (black screen) | `community` repo 404 leaves systemd in an error state | Verify `pacman -Sy` before removing the USB |
 | `root=UUID=` not found | Old GRUB, stale PARTUUID | `grub-mkconfig` after partitioning |
-
-## Handoff to other skills in the group
-
-| If you touch... | Go to |
-|---|---|
-| Writing the ISO to USB | `arch-iso-builder` |
-| Partitioning the .img from scratch | `arch-appliance-img` |
-| QEMU validation after writing | `arch-qemu-validation` |
-| "this hardware does not work" errors | `arch-archlinux-pitfalls` |
-| Specific payloads | `arch-payload-manifest` |
 
 ## Hardware operations checklist (paste in the work area)
 
@@ -176,15 +259,6 @@ mkfs.ext4 -L DATA "${DESTINO}3"
 11. ✅ Document the USB model and capacity in the log
 === END CHECKLIST ===
 ```
-
-## Versioning and traceability
-
-| Data | Where it is stored |
-|---|---|
-| USB model + capacity | `hardware-log.txt` in the project repo |
-| ISO/.img checksum | `SHA256SUMS` (already committed) |
-| `sync` success/failure | Comment in `docs/08-LECCIONES-APRENDIDAS.md` |
-| Incompatible hardware | Tag in the `git commit`: `hardware::incompatible` |
 
 ## Methodology
 

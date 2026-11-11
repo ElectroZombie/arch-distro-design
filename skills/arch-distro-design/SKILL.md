@@ -13,6 +13,30 @@ description: 'Router and root skill for designing Arch Linux distributions. Deci
 - The **architecture** must be decided before writing a single line of code.
 - The **contract** between artifacts must be fixed (what goes inside the ISO, what goes in the .img, what goes in the payload).
 
+## Startup Workflow
+
+1. **Confirm the request** — the user wants "a distro", "an appliance", "an Arch ISO" or "a self-hosted system" without naming the output format.
+2. **Run the Brief** — ask the 7 mandatory questions in the design process below. Never guess an answer.
+3. **Fix the artifact boundary** — decide ISO vs .img vs payload and write the "what goes where" contract.
+4. **Delegate** — hand the settled decisions to the sibling skills. This skill decides; it does not build.
+5. **Verify** — the design gate must be fully checked before any construction starts.
+
+## Scope
+
+**In scope:** the artifact decision, the layer model (L-1..L4), the artifact contract, the network and update policy, and the immutability model.
+
+**Out of scope:** building anything. This skill decides; the siblings execute.
+
+| Out of scope | Delegate to |
+|---|---|
+| archiso profile, boot modes, live ISO | `arch-iso-builder` |
+| Partitioning, `.img`, systemd units | `arch-appliance-img` |
+| Signed offline repo | `arch-frozen-repo` |
+| App manifest, runtime, database | `arch-payload-manifest` |
+| Graphical layer, panel, kiosk | `arch-desktop-layers` |
+| Boot tests, shutdown | `arch-qemu-validation` |
+| Physical media writes | `arch-hardware-handler` |
+
 ## Skill group (interrelated)
 
 | Skill | Role | Produces |
@@ -128,7 +152,44 @@ If the ISO and the .img can be built **separately**, the contract is correct.
 
 Every artifact goes through `arch-qemu-validation` **before** touching real hardware.
 
-## Design checklist (gate)
+## Verification
+
+Run before delegating. The script fails fast on the first missing item.
+
+```bash
+set -euo pipefail
+
+BRIEF="docs/brief.md"                 # the completed Brief
+CONTRACT="docs/artifact-contract.md" # what goes where
+
+# 1. Every mandatory Brief category is answered
+for category in "Objective" "Output format" "Target hardware" "Network policy" \
+                "Apps/payloads" "Immutability" "Update policy"; do
+  grep -qi "$category" "$BRIEF" || { echo "❌ Brief missing: $category" >&2; exit 1; }
+done
+
+# 2. The artifact contract exists and names all three artifacts
+test -f "$CONTRACT"
+grep -q 'ISO'     "$CONTRACT"
+grep -q '\.img'   "$CONTRACT"
+grep -q 'payload' "$CONTRACT"
+
+# 3. The main artifact and the update policy are decided
+grep -qiE 'primary artifact|main artifact' "$BRIEF"
+grep -qi 'update policy' "$BRIEF"
+
+echo "✅ Design brief and artifact contract verified"
+```
+
+| # | Check | Expected |
+|---|---|---|
+| 1 | Brief answers all 7 categories | no missing category |
+| 2 | Artifact contract exists | ISO, .img and payload rows present |
+| 3 | Main artifact decided | ISO, .img, or both |
+| 4 | Network + update policy | written, not implied |
+| 5 | Immutability model | `rw`, `squashfs` or `overlayfs` |
+
+## Definition of Done
 
 - [ ] Brief answered by the user (not guessed).
 - [ ] Main artifact identified (ISO / .img / both).
@@ -158,6 +219,17 @@ Every artifact goes through `arch-qemu-validation` **before** touching real hard
 | DB in the base image | 2 GB appliance with unused Postgres | The payload declares the DB |
 | Display manager | Black screen after an update | `arch-desktop-layers` (no DM) |
 | "Internet off" undecided | The admin does not know how to update | Written policy + update unit |
+
+## State & Evidence
+
+| State | Where it lives |
+|---|---|
+| The 7-category Brief | `docs/brief.md` |
+| Artifact contract ("what goes where") | `docs/artifact-contract.md` |
+| Layer decisions (L-1..L4) | `docs/brief.md` |
+| Validation plan | `docs/brief.md` |
+
+Record the evidence before delegating: the **command** you ran and its **output** (for example the `✅ Design brief and artifact contract verified` line). Without that evidence the design is not done.
 
 ## Handoff
 

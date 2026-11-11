@@ -26,6 +26,28 @@ repository is what the live system/appliance uses to synchronize packages
 > **If the `Brief` is not complete, generation of the frozen repo pauses and the
 > user is asked for the 7 mandatory categories.**
 
+## Startup Workflow
+
+1. **Confirm the Brief** — the network and update policy decide whether the repo is the only package source.
+2. **Collect the packages** — download with `pacman -Sw` into a staging directory, without installing them.
+3. **Sign and freeze** — `repo-add` the database, then write `out/versions.txt`.
+4. **Wire the consumer** — the live system and the appliance point at `file:///arch-repo` with `SigLevel = PackageRequired`.
+5. **Verify** — run the checks in [Verification](#verification).
+6. **Record the evidence** — see [State & Evidence](#state--evidence).
+
+## Scope
+
+**In scope:** the frozen repo inside the ISO, its signed database, version pinning, and offline consumption from the live system and the appliance.
+
+**Out of scope:** the ISO itself, the `.img` installation, app payload code, and any repo that is not signed by the Arch keyring.
+
+| Out of scope | Delegate to |
+|---|---|
+| archiso profile and live ISO | `arch-iso-builder` |
+| Partitioning, `.img`, systemd units | `arch-appliance-img` |
+| App manifest, runtime, database | `arch-payload-manifest` |
+| Boot tests in QEMU | `arch-qemu-validation` |
+
 ## Purpose
 
 - Allows the ISO or .img to work **100% offline** after being built.
@@ -108,7 +130,34 @@ pacman -Su --noconfirm --ignore glibc
 | Avoid updating glibc | `pacman -Su --noconfirm --ignore glibc` |
 | Version log | `versions.txt` committed after every build |
 
-### 6. Validation
+## Verification
+
+Run after building the repo. The script fails fast on the first problem.
+
+```bash
+set -euo pipefail
+
+REPO="builder/arch-profile/airootfs/arch-repo"
+PACCONF="builder/arch-profile/airootfs/etc/pacman.conf"
+
+# 1. The signed database exists
+test -f "$REPO/appliance.db.tar.gz"
+
+# 2. At least one frozen package
+ls "$REPO"/*.pkg.tar.zst >/dev/null
+
+# 3. The version manifest was frozen
+test -s out/versions.txt
+
+# 4. The live points at the frozen repo with signature verification ON
+grep -q 'PackageRequired' "$PACCONF"
+grep -q 'file:///arch-repo' "$PACCONF"
+
+# 5. No unsigned repo in the default flow
+! grep -qs '^\[aur\]' "$PACCONF"
+
+echo "✅ Frozen repo verified"
+```
 
 | Check | Command | Expected |
 |---|---|---|
@@ -169,7 +218,30 @@ yay -Sy --noconfirm
 pamac update --force-refresh
 ```
 
-## Handoff to other skills in the group
+## Definition of Done
+
+- [ ] Brief completed (network policy and update policy) before generating the repo.
+- [ ] The repo lives **inside the ISO** (`airootfs/arch-repo/`), never inside DATA.
+- [ ] The database is signed with `repo-add` and the live uses `SigLevel = PackageRequired`.
+- [ ] Every package in `builder/repo-packages.txt` is present in the repo.
+- [ ] `out/versions.txt` written and committed (rollback and verification).
+- [ ] The default flow has **no** `[aur]` repo; if the Brief authorizes one, it is isolated and documented.
+- [ ] The repo is consumable: `pacman -Sy --root / -c /etc/pacman.conf` syncs without error.
+- [ ] `SHA256SUMS` covers the produced artifacts.
+
+## State & Evidence
+
+| State | Where it lives |
+|---|---|
+| The frozen repo | `builder/arch-profile/airootfs/arch-repo/` |
+| Signed database | `arch-repo/appliance.db.tar.gz` |
+| Pinned versions | `out/versions.txt` |
+| Requested package list | `builder/repo-packages.txt` |
+| Live repo configuration | `airootfs/etc/pacman.conf` |
+
+Record the evidence: the **command** you ran and its **output** — the `✅ Frozen repo verified` line, the `pacman -Sy` sync output, and the head of `out/versions.txt`.
+
+## Handoff
 
 | If you touch... | Go to |
 |---|---|

@@ -37,6 +37,29 @@ DATA partition can be mounted on another machine without touching the OS.
   is needed.
 - The appliance must be validated in QEMU before writing it to a real USB drive.
 
+## Startup Workflow
+
+1. **Confirm the Brief** — `arch-distro-design` has already answered all 7 categories, including the target disk size.
+2. **Confirm the target disk** — run `lsblk -o NAME,SIZE,MODEL` and confirm it is **not** the host's `/dev/sda`.
+3. **Partition and install** — `parted`, `mkfs`, `pacstrap`, chroot configuration.
+4. **Verify** — run the checks in [Verification](#verification), then validate in QEMU (`arch-qemu-validation`).
+5. **Record the evidence** — see [State & Evidence](#state--evidence).
+
+## Scope
+
+**In scope:** the EFI+SYS+DATA partition table, the `pacstrap` installation, the chroot configuration, the systemd services, and the portable DATA partition.
+
+**Out of scope:** the live ISO, the frozen repo contents, the payload code, and any physical media write.
+
+| Out of scope | Delegate to |
+|---|---|
+| archiso profile and live ISO | `arch-iso-builder` |
+| Signed offline repo | `arch-frozen-repo` |
+| App manifest, runtime, database | `arch-payload-manifest` |
+| Graphical layer, panel, kiosk | `arch-desktop-layers` |
+| Boot tests in QEMU | `arch-qemu-validation` |
+| Writing to a real USB drive | `arch-hardware-handler` |
+
 ## ⚠️ MANDATORY: validation with `arch-hardware-handler`
 
 Before writing to any physical disk or creating .imgs, go through the
@@ -215,7 +238,34 @@ mount -L DATA /mnt/data
 ls /mnt/data/
 ```
 
-### 8. Validation (checklist)
+## Verification
+
+Run on the host against the produced `.img` or target disk. The script fails
+fast on the first problem; the checklist below is then confirmed inside the
+running appliance.
+
+```bash
+set -euo pipefail
+
+DISK="${1:?usage: verify-appliance.sh <disk-or-img>}"
+
+# 1. The target is NOT the host's root disk
+ROOT_DISK="$(findmnt -n -o SOURCE / | sed 's/[0-9]*$//')"
+[[ "$DISK" != "$ROOT_DISK" ]] || { echo "❌ target is the host root disk" >&2; exit 1; }
+
+# 2. GPT with the EFI + SYS + DATA layout
+parted -s "$DISK" print | grep -q 'Partition Table: gpt'
+parted -s "$DISK" print | grep -q 'DATA'
+
+# 3. The DATA partition carries the DATA label
+lsblk -o NAME,FSTYPE,LABEL "$DISK" | grep -q 'DATA'
+
+# 4. The size rule holds (SYS >= 6 GB)
+SYS_GB=$(parted -s "$DISK" print | awk '/SYS/ {print $3}' | tr -d 'GB')
+[[ -z "$SYS_GB" || "$SYS_GB" -ge 6 ]] || { echo "❌ SYS partition < 6 GB" >&2; exit 1; }
+
+echo "✅ Partition layout verified"
+```
 
 | # | Check | Command | Expected |
 |---|---|---|---|
@@ -236,7 +286,35 @@ ls /mnt/data/
 > **10** validates the "internet disabled by default" policy.
 > **11** validates the "DATA mountable on another machine" requirement.
 
-### 9. Handoff to other skills in the group
+## Definition of Done
+
+- [ ] Brief completed with all 7 categories before starting.
+- [ ] Target disk identified with `lsblk` and confirmed **not** to be the host's `/dev/sda`.
+- [ ] Disk is ≥ 8 GB and the SYS partition is ≥ 6 GB.
+- [ ] GPT table created with EFI (512 MB), SYS and DATA; DATA is labelled `DATA`.
+- [ ] `pacstrap` completed with `-c -G -M -K` against the profile's `pacman.conf`.
+- [ ] GRUB installed with `root=UUID=` and `grub.cfg` regenerated.
+- [ ] `fstab` contains the DATA entry (`LABEL=DATA /data ext4 defaults 0 2`).
+- [ ] Root password is **not** `root:root` — `passwd -e root` or a secure hash.
+- [ ] `systemd-networkd` disabled by default; only `appliance-update.service` writes to root.
+- [ ] `appliance-update.service` unit exists and is enabled.
+- [ ] `podman` is **not** installed unless the payload manifest requires it.
+- [ ] Verified in QEMU (`arch-qemu-validation`) before any physical write.
+
+## State & Evidence
+
+| State | Where it lives |
+|---|---|
+| The target image | `out/appliance-<profile>-<date>.img` |
+| Partition layout | `parted -s "$DISK" print` output |
+| Installed package set | the `.img` itself (installed rootfs) |
+| Update unit | `appliance-update.service` inside the image |
+| Payload manifests | `apps/<slug>/app.conf` |
+| Hardware log | `hardware-log.txt` (written by `arch-hardware-handler`) |
+
+Record the evidence: the **command** you ran and its **output** — the `✅ Partition layout verified` line, the `parted` table, and the QEMU checklist result. An image without recorded evidence is not finished.
+
+## Handoff
 
 | If you touch... | Go to |
 |---|---|
@@ -248,7 +326,7 @@ ls /mnt/data/
 | "this failed with..." | `arch-archlinux-pitfalls` |
 | validate hardware before writing | `arch-hardware-handler` |
 
-### 10. Common errors
+## Common errors
 
 | Error | Symptom | Prevention |
 |---|---|---|

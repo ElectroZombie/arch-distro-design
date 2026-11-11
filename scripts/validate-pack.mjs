@@ -105,6 +105,62 @@ for (const dir of skillDirs) {
   check(!/[áéíóúñ¿¡ÁÉÍÓÚÑ]/.test(content), `skills/${dir}/SKILL.md contains no Spanish accents`);
 }
 
+// --- Skill harness contract ----------------------------------------------------
+// Every skill must expose the same five-subsystem contract so an agent can
+// enter, scope, verify, close and resume it the same way everywhere.
+const REQUIRED_SECTIONS = [
+  'Startup Workflow',
+  'Scope',
+  'Verification',
+  'Definition of Done',
+  'State & Evidence',
+  'Handoff'
+];
+
+function sectionIndex(content, title) {
+  const lines = content.split(/\r?\n/);
+  return lines.findIndex((line) => line.trim() === `## ${title}`);
+}
+
+for (const dir of skillDirs) {
+  const skillFile = path.join(SKILLS_DIR, dir, 'SKILL.md');
+  if (!existsSync(skillFile)) continue;
+  const content = read(skillFile);
+
+  const indexes = REQUIRED_SECTIONS.map((title) => [title, sectionIndex(content, title)]);
+  for (const [title, index] of indexes) {
+    check(index !== -1, `skills/${dir}/SKILL.md has a "## ${title}" section`);
+  }
+
+  const present = indexes.filter(([, index]) => index !== -1);
+  const ordered = present.every(([, index], i) => i === 0 || index > present[i - 1][1]);
+  check(ordered, `skills/${dir}/SKILL.md keeps the contract sections in order`);
+
+  // The Verification section must ship a runnable, fail-fast script.
+  const verificationAt = sectionIndex(content, 'Verification');
+  if (verificationAt !== -1) {
+    const body = content.split(/\r?\n/).slice(verificationAt).join('\n');
+    check(/```bash/.test(body), `skills/${dir}/SKILL.md "Verification" contains a bash block`);
+    check(/set -euo pipefail/.test(body), `skills/${dir}/SKILL.md "Verification" fails fast`);
+    check(/echo "✅/.test(body), `skills/${dir}/SKILL.md "Verification" prints a success marker`);
+  }
+
+  // The Scope section must state both sides of the boundary.
+  const scopeAt = sectionIndex(content, 'Scope');
+  if (scopeAt !== -1) {
+    const body = content.split(/\r?\n/).slice(scopeAt).join('\n');
+    check(/\*\*In scope:\*\*/.test(body), `skills/${dir}/SKILL.md "Scope" declares what is in scope`);
+    check(/\*\*Out of scope:\*\*/.test(body), `skills/${dir}/SKILL.md "Scope" declares what is out of scope`);
+  }
+
+  // The Definition of Done must be a real checklist.
+  const doneAt = sectionIndex(content, 'Definition of Done');
+  if (doneAt !== -1) {
+    const body = content.split(/\r?\n/).slice(doneAt).join('\n');
+    check(/- \[ \]/.test(body), `skills/${dir}/SKILL.md "Definition of Done" is a checklist`);
+  }
+}
+
 // --- Manifest <-> disk consistency -------------------------------------------
 for (const name of declared) {
   check(present.has(name), `skills.sh.json entry "${name}" has a matching SKILL.md`);

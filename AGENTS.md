@@ -25,6 +25,8 @@ The harness has two layers:
   accented characters into `skills/` on this branch.
 - **One skill per directory.** Every skill is `skills/<name>/SKILL.md` with YAML
   frontmatter. The frontmatter `name` **must** equal the directory name.
+- **Every skill carries the same harness contract.** See below — the sections
+  are mandatory and their order is enforced by `scripts/validate-pack.mjs`.
 - **The router is `skills/arch-distro-design/SKILL.md`.** It owns the
   artifact boundaries (ISO vs `.img` vs payload) and the L0–L4 layer model.
 - **Never vendorize app code.** Payloads are declared by manifest and
@@ -61,6 +63,25 @@ If baseline verification is failing, repair that first before adding new scope.
   and `feature_list.json`.
 - **Leave a clean state**: the next session must be able to run `./init.sh`
   immediately and get a restartable baseline.
+
+## Skill Harness Contract
+
+Every `skills/<name>/SKILL.md` exposes the same six sections, in this order, so
+an agent can enter, scope, verify, close and resume any skill the same way.
+`scripts/validate-pack.mjs` enforces the presence **and** the order.
+
+| Section | Purpose | Required content |
+| :--- | :--- | :--- |
+| `## Startup Workflow` | The entry path | Numbered steps from precondition to handoff |
+| `## Scope` | The boundary | `**In scope:**` and `**Out of scope:**` plus a delegation table |
+| `## Verification` | The gate | A runnable `bash` block with `set -euo pipefail` and a `✅` marker |
+| `## Definition of Done` | The completion rule | A `- [ ]` checklist |
+| `## State & Evidence` | The memory | Where the state lives + what evidence to record |
+| `## Handoff` | The next skill | A trigger → destination table |
+
+Adding, renaming or removing one of these sections in a skill is a **breaking
+change** to that skill's interface: bump the MAJOR version and note it in
+`CHANGELOG.md`.
 
 ## Required Artifacts
 
