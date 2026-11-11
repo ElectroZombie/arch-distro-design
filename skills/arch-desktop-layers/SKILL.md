@@ -5,150 +5,150 @@ description: 'General desktop layer definitions for Arch Linux live ISOs and app
 
 # Arch Desktop Layers — General Purpose
 
-Skill para definir capas de escritorio en distribuciones Arch Linux. **No está
-limitado** al setup kiosco canónico. Sirve para que cualquier usuario o agente
-pueda construir una ISO o appliance con el escritorio que necesite: Openbox, i3,
-KDE, GNOME, XFCE, Cinnamon, LXQT, o ninguno (console-only). Integra con el
-Brief de `arch-distro-design`.
+Skill for defining desktop layers in Arch Linux distributions. It is **not
+limited** to the canonical kiosk setup. It lets any user or agent build an ISO
+or appliance with the desktop they need: Openbox, i3, KDE, GNOME, XFCE,
+Cinnamon, LXQT, or none at all (console-only). It integrates with the
+`arch-distro-design` Brief.
 
-## Propósito
+## Purpose
 
-Permitir al usuario elegir el entorno gráfico o su ausencia, sin que el
-constructor quede anclado a un solo caso de uso. Cada "capa" es independiente y
-se puede combinar con las otras skills del grupo. Las capas están ordenadas de
-**más ligera a más completa**: cada capa subsiguiente es más completa pero
-también más pesada.
+Allow the user to choose the graphical environment or its absence, without
+locking the builder into a single use case. Each "layer" is independent and can
+be combined with the other skills in the group. Layers are ordered from
+**lightest to fullest**: each subsequent layer is more complete but also
+heavier.
 
-## Capas de escritorio disponibles
+## Available desktop layers
 
-### L0 — Console-only (sin interfaz gráfica)
+### L0 — Console-only (no graphical interface)
 
-| Elemento | Decisión |
+| Element | Decision |
 |---|---|
-| `xorg-server` | ❌ No incluido |
-| `xorg-xinit` | ❌ No incluido |
-| `openbox` / `tint2` / `falkon` | ❌ No incluido |
-| `framebuffer` | `console=tty0` en kernel params |
-| Ventaja | Tamaño ISO mínimo (~300 MB) |
-| Uso | Servidores, headless, dispositivos embebidos |
+| `xorg-server` | ❌ Not included |
+| `xorg-xinit` | ❌ Not included |
+| `openbox` / `tint2` / `falkon` | ❌ Not included |
+| `framebuffer` | `console=tty0` in kernel params |
+| Advantage | Minimum ISO size (~300 MB) |
+| Use | Servers, headless, embedded devices |
 
-### L1 — Openbox + tint2 (escritorio minimalista)
+### L1 — Openbox + tint2 (minimalist desktop)
 
-| Elemento | Decisión |
+| Element | Decision |
 |---|---|
-| `xorg-server` + `xorg-xinit` | ✅ incluido |
-| `openbox` + `tint2` | ✅ incluido (`strut_on_top`) |
-| `falkon` + `qterminal` + `featherpad` | ✅ incluido |
-| `pcmanfm-qt` + `shared-mime-info` | ✅ incluido |
-| `breeze-icons` + `hicolor-icon-theme` | ✅ incluido |
-| `xdg-user-dirs` | ✅ incluido |
-| Panel visible | ✅ por defecto (`strut_mode = strut_on_top`) |
-| Fullscreen | ⚠️ Solo con `Super+F` |
-| Uso | Escritorio minimalista, válido para cualquier distribución |
-| Peso estimado | ~400 MB |
+| `xorg-server` + `xorg-xinit` | ✅ included |
+| `openbox` + `tint2` | ✅ included (`strut_on_top`) |
+| `falkon` + `qterminal` + `featherpad` | ✅ included |
+| `pcmanfm-qt` + `shared-mime-info` | ✅ included |
+| `breeze-icons` + `hicolor-icon-theme` | ✅ included |
+| `xdg-user-dirs` | ✅ included |
+| Panel visible | ✅ by default (`strut_mode = strut_on_top`) |
+| Fullscreen | ⚠️ Only with `Super+F` |
+| Use | Minimalist desktop, valid for any distribution |
+| Estimated size | ~400 MB |
 
-### L2 — LXQT (entorno ligero pero completo)
+### L2 — LXQT (lightweight but complete environment)
 
-| Elemento | Decisión |
+| Element | Decision |
 |---|---|
-| `xorg-server` + `xorg-xinit` | ✅ incluido |
-| `lxqt` (meta-package) | ✅ incluido |
-| `pcmanfm-qt` + `qterminal` + `featherpad` | ✅ incluido |
-| `lxpolkit` | ✅ incluido |
-| Panel | `lxqt-panel` (incluido con LXQT) |
-| Uso | Entorno ligero con funcionalidades modernas |
-| Peso estimado | ~600 MB |
-| Observación | **Más completa que L1 (Openbox) pero más ligera que XFCE**. |
+| `xorg-server` + `xorg-xinit` | ✅ included |
+| `lxqt` (meta-package) | ✅ included |
+| `pcmanfm-qt` + `qterminal` + `featherpad` | ✅ included |
+| `lxpolkit` | ✅ included |
+| Panel | `lxqt-panel` (included with LXQT) |
+| Use | Lightweight environment with modern features |
+| Estimated size | ~600 MB |
+| Note | **More complete than L1 (Openbox) but lighter than XFCE**. |
 
-### L3 — XFCE (entorno ligero pero completo)
+### L3 — XFCE (lightweight but complete environment)
 
-| Elemento | Decisión |
+| Element | Decision |
 |---|---|
-| `xorg-server` + `xorg-xinit` | ✅ incluido |
-| `xfce4` + `xfce4-panel` | ✅ incluido |
-| `thunar` + `terminal` (xfce4-terminal) | ✅ incluido |
-| `mousepad` + `garcon` + `xfce4-settings` | ✅ incluido |
-| Uso | Ligereza con GUI completa |
-| Ventaja sobre LXQT | Mejor madurez de aplicaciones |
-| Peso estimado | ~800 MB |
+| `xorg-server` + `xorg-xinit` | ✅ included |
+| `xfce4` + `xfce4-panel` | ✅ included |
+| `thunar` + `terminal` (xfce4-terminal) | ✅ included |
+| `mousepad` + `garcon` + `xfce4-settings` | ✅ included |
+| Use | Lightweight with a full GUI |
+| Advantage over LXQT | Better application maturity |
+| Estimated size | ~800 MB |
 
-### L4 — Cinnamon (experiencia moderna)
+### L4 — Cinnamon (modern experience)
 
-| Elemento | Decisión |
+| Element | Decision |
 |---|---|
-| `xorg-server` | ✅ incluido |
-| `cinnamon` (meta) + `muffin` | ✅ incluido |
-| `nemo` + `firefox` + `gedit` + `gnome-terminal` | ✅ incluido |
-| `cinnamon-control-center` | ✅ incluido |
-| Uso | Experiencia tipo "GNOME 2" con funcionalidades modernas |
-| Peso estimado | ~1.2 GB |
-| Observación | **Más completa que XFCE** pero con uso de RAM superior. |
+| `xorg-server` | ✅ included |
+| `cinnamon` (meta) + `muffin` | ✅ included |
+| `nemo` + `firefox` + `gedit` + `gnome-terminal` | ✅ included |
+| `cinnamon-control-center` | ✅ included |
+| Use | "GNOME 2"-style experience with modern features |
+| Estimated size | ~1.2 GB |
+| Note | **More complete than XFCE** but with higher RAM usage. |
 
-### L5 — KDE Plasma (experiencia completa)
+### L5 — KDE Plasma (full experience)
 
-| Elemento | Decisión |
+| Element | Decision |
 |---|---|
-| `xorg-server` | ✅ incluido |
-| `plasma-desktop` + `sddm` | ✅ incluido |
-| `falkon` + `kwin` + `qt6-style-breeze` | ✅ incluido |
-| `oxygen-icons` + `powerdevil` + `drkonqi` | ✅ incluido |
-| `systemsettings` | ✅ incluido |
-| Uso | Experiencia "de escritorio completa" |
-| ⚠️ Nota | SDDM puede colgar en algunos hardware (ver lección) |
-| Peso estimado | ~1.4 GB |
+| `xorg-server` | ✅ included |
+| `plasma-desktop` + `sddm` | ✅ included |
+| `falkon` + `kwin` + `qt6-style-breeze` | ✅ included |
+| `oxygen-icons` + `powerdevil` + `drkonqi` | ✅ included |
+| `systemsettings` | ✅ included |
+| Use | "Full desktop" experience |
+| ⚠️ Note | SDDM may hang on some hardware (see pitfalls) |
+| Estimated size | ~1.4 GB |
 
-### L6 — GNOME (experiencia moderna)
+### L6 — GNOME (modern experience)
 
-| Elemento | Decisión |
+| Element | Decision |
 |---|---|
-| `xorg-server` | ✅ incluido |
-| `gnome` (meta) + `mutter` | ✅ incluido |
-| `gedit` + `firefox` + `gnome-terminal` | ✅ incluido |
-| `gnome-control-center` | ✅ incluido |
-| Uso | Experiencia "standard" de GNOME |
-| ⚠️ Nota | Requiere más RAM y disco |
-| Peso estimado | ~1.5 GB |
+| `xorg-server` | ✅ included |
+| `gnome` (meta) + `mutter` | ✅ included |
+| `gedit` + `firefox` + `gnome-terminal` | ✅ included |
+| `gnome-control-center` | ✅ included |
+| Use | GNOME "standard" experience |
+| ⚠️ Note | Requires more RAM and disk |
+| Estimated size | ~1.5 GB |
 
-## Configuración de panel por capa
+## Panel configuration per layer
 
-| Capa | Panel | Configuración clave |
+| Layer | Panel | Key configuration |
 |---|---|---|
-| L0 (Console) | Ninguno | Sin X, solo TTY/serial |
+| L0 (Console) | None | No X, only TTY/serial |
 | L1 (Openbox) | `tint2` | `strut_mode = strut_on_top` |
-| L2 (LXQT) | `lxqt-panel` | Automático, minimalista |
-| L3 (XFCE) | `xfce4-panel` | Automático |
-| L4 (Cinnamon) | `systemtray` | Incluido en panel por defecto |
-| L5 (KDE) | `systemtray` | Incluido en panel de Plasma |
-| L6 (GNOME) | GNOME Shell | Automático |
+| L2 (LXQT) | `lxqt-panel` | Automatic, minimalist |
+| L3 (XFCE) | `xfce4-panel` | Automatic |
+| L4 (Cinnamon) | `systemtray` | Included in the default panel |
+| L5 (KDE) | `systemtray` | Included in the Plasma panel |
+| L6 (GNOME) | GNOME Shell | Automatic |
 
-## Flujo de trabajo para elegir una capa
+## Workflow for choosing a layer
 
-### 1. En `profiledef.sh` del ISO
+### 1. In the ISO `profiledef.sh`
 
 ```bash
-desktop_layer="L1-openbox"   # o L0, L2, L3, L4, L5, L6
+desktop_layer="L1-openbox"   # or L0, L2, L3, L4, L5, L6
 ```
 
-### 2. En `packages.x86_64` del ISO
+### 2. In the ISO `packages.x86_64`
 
-Descomentar la sección correspondiente según la capa elegida.
+Uncomment the corresponding section for the chosen layer.
 
-### 3. Overlay `airootfs/` personalizado
+### 3. Custom `airootfs/` overlay
 
 | Layer | `.xinitrc` | `.xprofile` | Panel |
 |---|---|---|---|
-| L0 | `startx` no aplica (TTY) | Variables por defecto | Ninguno |
-| L1 | `tint2 &` + `openbox-session` | Variables Qt | `tint2` |
-| L2 | `startlxqt` | Variables LXQT | `lxqt-panel` |
-| L3 | `startxfce4` | Variables XFCE | `xfce4-panel` |
-| L4 | `startcinnamon` (o `gnome-session --session=cinnamon`) | Variables cinnamon | `systemtray` |
-| L5 | `startplasma-x11` | Variables Qt/KDE | `systemtray` |
-| L6 | `gnome-session` | Variables gnome | GNOME Shell |
+| L0 | `startx` does not apply (TTY) | Default variables | None |
+| L1 | `tint2 &` + `openbox-session` | Qt variables | `tint2` |
+| L2 | `startlxqt` | LXQT variables | `lxqt-panel` |
+| L3 | `startxfce4` | XFCE variables | `xfce4-panel` |
+| L4 | `startcinnamon` (or `gnome-session --session=cinnamon`) | Cinnamon variables | `systemtray` |
+| L5 | `startplasma-x11` | Qt/KDE variables | `systemtray` |
+| L6 | `gnome-session` | GNOME variables | GNOME Shell |
 
-## Validación
+## Validation
 
 ```bash
-# Ver cuál capa está activa
+# See which layer is active
 locale                                    # LANG/DESKTOP
 pgrep -a openbox                          # L1
 pgrep -a lxqt-session                     # L2
@@ -158,35 +158,35 @@ pgrep -a kwin                             # L5
 pgrep -a mutter                           # L6
 ```
 
-## Handoff a otras skills del grupo
+## Handoff to other skills in the group
 
-| Si tocas... | Ve a |
+| If you touch... | Go to |
 |---|---|
-| perfil + packages | `arch-iso-builder` |
-| boot, console, serie | `arch-qemu-validation` |
-| "esto falló con..." | `arch-archlinux-pitfalls` |
+| profile + packages | `arch-iso-builder` |
+| boot, console, serial | `arch-qemu-validation` |
+| "this failed with..." | `arch-archlinux-pitfalls` |
 | payloads + runtime | `arch-payload-manifest` |
 | .img + DATA partition | `arch-appliance-img` |
-| kiosco específico (L1 con tweaks) | Misma skill, configuración distinta |
+| specific kiosk (L1 with tweaks) | Same skill, different configuration |
 
-## Errores comunes al cambiar de capa
+## Common errors when changing layers
 
-| Error | Síntoma | Prevención |
+| Error | Symptom | Prevention |
 |---|---|---|
-| `forgot xorg-xinit` | `startx` no existe | Siempre incluir `xorg-xinit` en la capa |
-| `tint2 sin strut` | Panel se superpone con ventanas | `strut_mode = strut_on_top` |
-| `i3 sin mod Mod4` | Atajos no funcionan | `Mod4` es la Windows key por defecto |
-| `sddm no arranca` | Pantalla negra | Usar `startx` desde autologin (sin DM) |
-| `missing fonts` | Texto como cuadros □□□ | Incluir `ttf-dejavu` + `breeze-icons` |
+| `forgot xorg-xinit` | `startx` does not exist | Always include `xorg-xinit` in the layer |
+| `tint2 without strut` | Panel overlaps windows | `strut_mode = strut_on_top` |
+| `i3 without Mod4` | Shortcuts do not work | `Mod4` is the Windows key by default |
+| `sddm does not start` | Black screen | Use `startx` from autologin (no DM) |
+| `missing fonts` | Text rendered as boxes □□□ | Include `ttf-dejavu` + `breeze-icons` |
 
-## Checklist de elección de escritorio
+## Desktop selection checklist
 
-- [ ] Capa elegida (L0..L6) y escrita en `profiledef.sh:desktop_layer`
-- [ ] Paquetes de la capa descomentados en `packages.x86_64`
-- [ ] Overlay `airootfs/` configurado (`.xinitrc`, `.xprofile`)
-- [ ] Variables de entorno coherentes (`QT_QPA_PLATFORM`, `XDG_CURRENT_DESKTOP`)
-- [ ] Boot validado en QEMU con la capa elegida (`arch-qemu-validation`)
-- [ ] Peso estimado ISO según capa:
+- [ ] Layer chosen (L0..L6) and written in `profiledef.sh:desktop_layer`
+- [ ] Layer packages uncommented in `packages.x86_64`
+- [ ] `airootfs/` overlay configured (`.xinitrc`, `.xprofile`)
+- [ ] Consistent environment variables (`QT_QPA_PLATFORM`, `XDG_CURRENT_DESKTOP`)
+- [ ] Boot validated in QEMU with the chosen layer (`arch-qemu-validation`)
+- [ ] Estimated ISO size per layer:
   - L0: ~300 MB · L1: ~400 MB · L2: ~600 MB · L3: ~800 MB
   - L4: ~1.2 GB · L5: ~1.4 GB · L6: ~1.5 GB
-- [ ] Si es L0/Console: verificar que no se necesita interfaz gráfica
+- [ ] If L0/Console: verify that no graphical interface is needed

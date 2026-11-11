@@ -5,62 +5,62 @@ description: 'Automated QEMU test harness for Arch ISOs and .img appliances. Val
 
 # Arch QEMU Validation — General Purpose
 
-Skill para validar **automatizablemente** ISOs y `.img` appliances de Arch Linux
-en QEMU. **No** está limitado a una distribución específica: sirve para
-cualquier artefacto construido con las skills del grupo. Todo artefacto pasa por
-este gate **antes** de tocar hardware real.
+Skill for **automatically** validating Arch Linux ISOs and `.img` appliances in
+QEMU. It is **not** limited to a specific distribution: it works for any
+artifact built with the group's skills. Every artifact goes through this gate
+**before** touching real hardware.
 
-## Propósito
+## Purpose
 
-Evitar que errores de build lleguen a hardware real. QEMU permite:
-- Probar arranque, particionado, systemd, consola serie y SSH de forma repetible.
-- Verificar la política "internet desactivado por defecto".
-- Probar apagado gracioso (lección: nunca `kill -9`).
-- Automatizar checks con scripts shell/python.
+Prevent build errors from reaching real hardware. QEMU allows you to:
+- Test boot, partitioning, systemd, serial console, and SSH repeatably.
+- Verify the "internet disabled by default" policy.
+- Test graceful shutdown (lesson: never `kill -9`).
+- Automate checks with shell/python scripts.
 
-## Requisitos del host
+## Host requirements
 
 ```bash
 sudo pacman -S --needed qemu-desktop edk2-ovmf archiso
 ```
 
-> **OVMF en Arch usa sufijo `.4m.fd`**: no usar `OVMF_CODE.fd`.
-> `OVMF_VARS.4m.fd` es **escribible**: copiar a `/tmp` en cada ejecución.
+> **OVMF on Arch uses the `.4m.fd` suffix**: do not use `OVMF_CODE.fd`.
+> `OVMF_VARS.4m.fd` is **writable**: copy it to `/tmp` on every run.
 
-## Parámetros de validación (decisiones del usuario)
+## Validation parameters (user decisions)
 
-| Parámetro | Descripción | Valor por defecto (sugerido) |
+| Parameter | Description | Default value (suggested) |
 |---|---|---|
-| `ISO_SIZE` | Tamaño esperado de la ISO para check #1 | Dejar vacío para autodetectar |
-| `IMG_SIZE` | Tamaño esperado del .img para check #1 | Dejar vacío para autodetectar |
-| `RAM_ISO` | RAM asignada a la ISO en MB | `2048` |
-| `RAM_IMG` | RAM asignada al .img en MB | `1024` |
-| `TIMEZONE` | Zona horaria esperada para check #14 | `America/Havana` |
-| `DISK_LABEL` | Etiqueta de partición DATA para check #11 | `DATA` |
+| `ISO_SIZE` | Expected ISO size for check #1 | Leave empty to autodetect |
+| `IMG_SIZE` | Expected .img size for check #1 | Leave empty to autodetect |
+| `RAM_ISO` | RAM assigned to the ISO in MB | `2048` |
+| `RAM_IMG` | RAM assigned to the .img in MB | `1024` |
+| `TIMEZONE` | Expected time zone for check #14 | `America/Havana` |
+| `DISK_LABEL` | DATA partition label for check #11 | `DATA` |
 
-## A. Validación de ISO live
+## A. Live ISO validation
 
-### A.1 Arranque con `run_archiso`
-
-```bash
-run_archiso -i out/<distro>-<fecha>-x86_64.iso
-```
-
-- Red: user-mode networking.
-- **SSH redirigido**: `localhost:60022` → puerto 22 guest.
-- `-c` / `-u` para lanzar con o sin UEFI.
+### A.1 Booting with `run_archiso`
 
 ```bash
-ssh -p 60022 root@localhost    # password: la definida por el admin
+run_archiso -i out/<distro>-<date>-x86_64.iso
 ```
 
-### A.2 Arranque controlado (consola serie + UEFI + apagado limpio)
+- Network: user-mode networking.
+- **SSH redirected**: `localhost:60022` → guest port 22.
+- `-c` / `-u` to boot with or without UEFI.
+
+```bash
+ssh -p 60022 root@localhost    # password: the one defined by the admin
+```
+
+### A.2 Controlled boot (serial console + UEFI + clean shutdown)
 
 ```bash
 set -euo pipefail
 
-ISO="out/<distro>-<fecha>-x86_64.iso"
-OVMF_VARS="/tmp/ovmf-vars-$$.fd"     # nuevo fd por sesión
+ISO="out/<distro>-<date>-x86_64.iso"
+OVMF_VARS="/tmp/ovmf-vars-$$.fd"     # new fd per session
 cp /usr/share/edk2/x64/OVMF_VARS.4m.fd "$OVMF_VARS"
 
 qemu-system-x86_64 \
@@ -75,40 +75,40 @@ qemu-system-x86_64 \
 QMP_PID=$!
 ```
 
-| Opción | Para qué |
+| Option | Purpose |
 |---|---|
-| `-serial mon:stdio -nographic` | Consola serie en terminal + monitor (`Ctrl-a c`) |
-| `if=pflash ... OVMF_CODE.4m.fd` | Arranque UEFI (Secure Boot: `.secboot.`) |
-| `hostfwd=tcp::60022-:22` | SSH desde el host |
-| `-qmp unix:/tmp/qmp.sock` | Apagado **gracioso** (ver §B.4) |
+| `-serial mon:stdio -nographic` | Serial console in the terminal + monitor (`Ctrl-a c`) |
+| `if=pflash ... OVMF_CODE.4m.fd` | UEFI boot (Secure Boot: `.secboot.`) |
+| `hostfwd=tcp::60022-:22` | SSH from the host |
+| `-qmp unix:/tmp/qmp.sock` | **Graceful** shutdown (see §B.4) |
 
-#### Checklist ISO (15 items) — ejemplo con L1 (Openbox)
+#### ISO checklist (15 items) — example with L1 (Openbox)
 
-> Los checks 12 y 13 asumen la capa L1 de `arch-desktop-layers`. Ajusta según
-> la capa elegida en el Brief.
+> Checks 12 and 13 assume the L1 layer from `arch-desktop-layers`. Adjust
+> according to the layer chosen in the Brief.
 
-| # | Comprobación | Comando | Esperado |
+| # | Check | Command | Expected |
 |---|---|---|---|
-| 1 | ISO existe y tamaño razonable | `ls -lh out/*.iso` | Tamaño según Brief |
+| 1 | ISO exists and has a reasonable size | `ls -lh out/*.iso` | Size per the Brief |
 | 2 | Checksum OK | `sha256sum -c out/SHA256SUMS` | `OK` |
-| 3 | Contiene el repo congelado | `bsdtar -tf out/*.iso \| grep arch-repo` | `arch/arch-repo/appliance.db.tar.gz` |
-| 4 | Contiene el instalador | `bsdtar -tf out/*.iso \| grep installer` | `arch/installer/build.sh` |
-| 5 | Arranca y muestra el prompt | consola serie | login en tty1 o ttyS0 |
-| 6 | El live monta el repo | `ls /arch-repo/` | `appliance.db.tar.gz` + `.pkg.tar.zst` |
-| 7 | **Sincroniza sin 404** | `pacman -Sy` | sin `community.db` 404 |
-| 8 | Instala un paquete | `pacman -S --noconfirm --dbpath /tmp/t <paquete>` | OK |
-| 9 | sshd activo | `systemctl is-active sshd` | `active` |
-| 10 | SSH desde el host | `ssh -p 60022 root@localhost` | login |
-| 11 | Consola serie viva | enviar `Enter` en `ttyS0` | prompt |
-| 12 | Escritorio arranca (L1) | `pgrep -a openbox` / `pgrep -a tint2` | ambos vivos |
-| 13 | Locale correcto | `locale` | según Brief |
-| 14 | Hora correcta | `timedatectl` | según Brief |
-| 15 | Keyring inicializado | `pacman-key --list-keys` | claves de Arch |
+| 3 | Contains the frozen repo | `bsdtar -tf out/*.iso \| grep arch-repo` | `arch/arch-repo/appliance.db.tar.gz` |
+| 4 | Contains the installer | `bsdtar -tf out/*.iso \| grep installer` | `arch/installer/build.sh` |
+| 5 | Boots and shows the prompt | serial console | login on tty1 or ttyS0 |
+| 6 | The live system mounts the repo | `ls /arch-repo/` | `appliance.db.tar.gz` + `.pkg.tar.zst` |
+| 7 | **Syncs without a 404** | `pacman -Sy` | no `community.db` 404 |
+| 8 | Installs a package | `pacman -S --noconfirm --dbpath /tmp/t <package>` | OK |
+| 9 | sshd active | `systemctl is-active sshd` | `active` |
+| 10 | SSH from the host | `ssh -p 60022 root@localhost` | login |
+| 11 | Serial console alive | send `Enter` on `ttyS0` | prompt |
+| 12 | Desktop starts (L1) | `pgrep -a openbox` / `pgrep -a tint2` | both alive |
+| 13 | Correct locale | `locale` | per the Brief |
+| 14 | Correct time | `timedatectl` | per the Brief |
+| 15 | Keyring initialized | `pacman-key --list-keys` | Arch keys |
 
-> La comprobación **7** detecta el fallo de `community` → `extra`.
-> La **8** valida que el repo congelado está bien firmado y es instalable.
+> Check **7** detects the `community` → `extra` failure.
+> **8** validates that the frozen repo is correctly signed and installable.
 
-### A.3 Arranque BIOS (syslinux)
+### A.3 BIOS boot (syslinux)
 
 ```bash
 set -euo pipefail
@@ -122,24 +122,24 @@ qemu-system-x86_64 \
   -device virtio-net-pci,netdev=net0
 ```
 
-### A.4 Fallos habituales en la validación ISO
+### A.4 Common ISO validation failures
 
-| Error | Causa | Solución |
+| Error | Cause | Solution |
 |---|---|---|
-| Pantalla negra después de login | `ttf-dejavu` ausente | Incluir en `packages.x86_64` |
-| El panel tint2 no aparece | `tint2` sin `strut` | `strut_mode = strut_on_top` en `.config/tint2/tint2rc` |
-| SSH no responde | `sshd` no habilitado | `systemctl enable sshd` en overlay |
-| `community.db 404` | `[community]` en pacman.conf | Quitar, usar sólo core+extra |
-| Consola serie silenciosa | `console=` orden incorrecta | `console=tty0 console=ttyS0,115200n8` (serie al final) |
+| Black screen after login | `ttf-dejavu` missing | Include it in `packages.x86_64` |
+| The tint2 panel does not appear | `tint2` without `strut` | `strut_mode = strut_on_top` in `.config/tint2/tint2rc` |
+| SSH does not respond | `sshd` not enabled | `systemctl enable sshd` in the overlay |
+| `community.db 404` | `[community]` in pacman.conf | Remove it; use only core+extra |
+| Silent serial console | Wrong `console=` order | `console=tty0 console=ttyS0,115200n8` (serial last) |
 
-## B. Validación del .img appliance
+## B. .img appliance validation
 
-### B.1 Levantar el .img como disco
+### B.1 Boot the .img as a disk
 
 ```bash
 set -euo pipefail
 
-IMG="out/appliance-<perfil>-<fecha>.img"
+IMG="out/appliance-<profile>-<date>.img"
 
 qemu-system-x86_64 \
   -m "${RAM_IMG:-1024}" -smp 2 \
@@ -152,86 +152,87 @@ qemu-system-x86_64 \
   -qmp unix:/tmp/qmp.sock,server,nowait &
 ```
 
-> Con `virtio` el root es `/dev/vda`, **no** `/dev/sda`. El GRUB del appliance
-> lleva `root=UUID=`, así que funciona en ambos casos.
+> With `virtio` the root is `/dev/vda`, **not** `/dev/sda`. The appliance's GRUB
+> uses `root=UUID=`, so it works in both cases.
 
-### B.2 Checklist appliance (13 items)
+### B.2 Appliance checklist (13 items)
 
-> Ejemplo con capa L1. Ajusta checks 5-7 según la capa y el payload del Brief.
+> Example with layer L1. Adjust checks 5-7 according to the layer and payload
+> from the Brief.
 
-| # | Comprobación | Comando | Esperado |
+| # | Check | Command | Expected |
 |---|---|---|---|
-| 1 | Tabla particiones | `parted -s $IMG print` | EFI 512 MB · SYS · DATA (`DATA`) |
-| 2 | Arranca OK | consola serie / SSH | prompt login |
-| 3 | Los tres puntos de montaje | `findmnt / / /data` | ext4 + ext4 + DATA |
-| 4 | DATA portable | `mount -L DATA /tmp/test` | legible, sin password |
-| 5 | Panel kiosco (L1) | `pgrep -a openbox; pgrep -a tint2` | ambos |
-| 6 | El kiosco sirve la app | `curl -s http://127.0.0.1:3000/health` | `{"status":"ok",...}` |
-| 7 | La BD responde | `systemctl is-active postgresql` | `active` |
-| 8 | SSH funciona | `ssh -p 60022 root@localhost` | login |
-| 9 | Red LAN DHCP | `ip -4 addr show` | IP asignada |
-| 10 | Sin red por defecto | `systemctl is-active systemd-networkd` | `inactive` |
-| 11 | DATA portable en otra máquina | montar `sda3` en otro host | legible, label `DATA` |
-| 12 | `appliance-update` existe | `systemctl cat appliance-update.service` | unit presente |
-| 13 | Podman NO instalado | `command -v podman` | vacío |
+| 1 | Partition table | `parted -s $IMG print` | EFI 512 MB · SYS · DATA (`DATA`) |
+| 2 | Boots OK | serial console / SSH | login prompt |
+| 3 | The three mount points | `findmnt / / /data` | ext4 + ext4 + DATA |
+| 4 | DATA portable | `mount -L DATA /tmp/test` | readable, no password |
+| 5 | Kiosk panel (L1) | `pgrep -a openbox; pgrep -a tint2` | both |
+| 6 | The kiosk serves the app | `curl -s http://127.0.0.1:3000/health` | `{"status":"ok",...}` |
+| 7 | The DB responds | `systemctl is-active postgresql` | `active` |
+| 8 | SSH works | `ssh -p 60022 root@localhost` | login |
+| 9 | LAN network DHCP | `ip -4 addr show` | IP assigned |
+| 10 | No network by default | `systemctl is-active systemd-networkd` | `inactive` |
+| 11 | DATA portable on another machine | mount `sda3` on another host | readable, label `DATA` |
+| 12 | `appliance-update` exists | `systemctl cat appliance-update.service` | unit present |
+| 13 | Podman NOT installed | `command -v podman` | empty |
 
-### B.3 Checklist particionado previo
+### B.3 Pre-partitioning checklist
 
 ```bash
 parted -s "$IMG" print
-# Debe ver GPT con 3 particiones:
+# You must see GPT with 3 partitions:
 # - P1: EFI (vfat, 512 MB)
 # - P2: SYS (ext4, root)
 # - P3: DATA (ext4, label DATA)
 ```
 
-### B.4 Apagado SIEMPRE gracioso
+### B.4 Shutdown is ALWAYS graceful
 
-📏 **Lección crítica:** `kill -9` a QEMU dejó el USB colgado con `error -71`.
+📏 **Critical lesson:** `kill -9` on QEMU left the USB hung with `error -71`.
 
 ```bash
-# 1. Verificar monitor QMP activo
+# 1. Verify that the QMP monitor is active
 echo '{"execute":"qmp_capabilities"}' | socat - UNIX-CONNECT:/tmp/qmp.sock
 
-# 2. Apagar graciosamente
+# 2. Shut down gracefully
 echo '{"execute":"system_powerdown"}' | socat - UNIX-CONNECT:/tmp/qmp.sock
 ```
 
-| Método | Comando | ¿Seguro? |
+| Method | Command | Safe? |
 |---|---|---|
-| **QMP `system_powerdown`** | `echo '{"execute":"system_powerdown"}' \| socat - UNIX-CONNECT:/tmp/qmp.sock` | ✅ preferido |
-| `systemctl poweroff` por SSH | `ssh -p 60022 root@localhost 'systemctl poweroff'` | ✅ |
-| Monitor QEMU | `Ctrl-a x` | ⚠️ cierra sin ACPI |
-| `kill -9` | ❌ | ⛔ **prohibido** |
+| **QMP `system_powerdown`** | `echo '{"execute":"system_powerdown"}' \| socat - UNIX-CONNECT:/tmp/qmp.sock` | ✅ preferred |
+| `systemctl poweroff` over SSH | `ssh -p 60022 root@localhost 'systemctl poweroff'` | ✅ |
+| QEMU monitor | `Ctrl-a x` | ⚠️ closes without ACPI |
+| `kill -9` | ❌ | ⛔ **forbidden** |
 
-Esperar a que QEMU termine antes de tocar el USB:
+Wait for QEMU to exit before touching the USB:
 
 ```bash
-wait $QMP_PID          # o: while kill -0 $QMP_PID; do sleep 1; done
+wait $QMP_PID          # or: while kill -0 $QMP_PID; do sleep 1; done
 sync
 ```
 
-### B.5 Registro de evidencia
+### B.5 Evidence log
 
-| Artefacto | Evidencia mínima |
+| Artifact | Minimum evidence |
 |---|---|
-| ISO | `sha256sum`, fecha, resultado de los 15 checks §A.4 |
-| .img | `parted print`, resultado de los 13 checks §B.2 |
-| Payload | healthcheck OK, log de la unit, versión instalada |
+| ISO | `sha256sum`, date, result of the 15 checks §A.4 |
+| .img | `parted print`, result of the 13 checks §B.2 |
+| Payload | healthcheck OK, unit log, installed version |
 
-Si un check falla, **no se commitea** el artefacto.
+If a check fails, the artifact is **not committed**.
 
-## C. Puente PTY para consola serie automatizable
+## C. PTY bridge for an automatable serial console
 
-QEMU con `-serial unix:/tmp/ser.sock,server,nowait` expone la consola en un
-socket; para automatizar hace falta un puente PTY:
+QEMU with `-serial unix:/tmp/ser.sock,server,nowait` exposes the console on a
+socket; automating it requires a PTY bridge:
 
 ```python
 #!/usr/bin/env python3
-"""serial-bridge.py — convierte un socket unix de QEMU en un PTY legible."""
+"""serial-bridge.py — turn a QEMU unix socket into a readable PTY."""
 import os
 import pty
-import select      # ← FIX: faltaba este import
+import select      # ← FIX: this import was missing
 import socket
 import sys
 
@@ -267,28 +268,28 @@ while True:
         os.write(1, data)
 ```
 
-> En producción, el puente debe **también enviar** teclas: el bucle `select`
-> debe leer del PTY maestro y escribirlo al socket.
+> In production, the bridge must **also send** keystrokes: the `select` loop
+> must read from the PTY master and write it to the socket.
 
-## D. Validación cruzada ISO ↔ .img
+## D. ISO ↔ .img cross-validation
 
 | Check | ISO | .img |
 |---|---|---|
-| Repo congelado presente | ✅ (en ISO) | ❌ (solo SO base) |
-| PARTITION DATA portable | ❌ | ✅ (LABEL=DATA) |
-| Escritorio (según capa) | ✅ | ✅ (misma config) |
-| SSH activo | ✅ | ✅ |
-| Sin internet por defecto | ✅ | ✅ |
-| `appliance-update` service | ❌ (solo en ISO build) | ✅ (en .img) |
-| `pacman -Sy` sin 404 | ✅ | ❌ (sistema instalado, no live) |
+| Frozen repo present | ✅ (in the ISO) | ❌ (base OS only) |
+| Portable DATA partition | ❌ | ✅ (LABEL=DATA) |
+| Desktop (per layer) | ✅ | ✅ (same config) |
+| SSH active | ✅ | ✅ |
+| No internet by default | ✅ | ✅ |
+| `appliance-update` service | ❌ (ISO build only) | ✅ (in the .img) |
+| `pacman -Sy` without a 404 | ✅ | ❌ (installed system, not live) |
 
-## Handoff a otras skills del grupo
+## Handoff to other skills in the group
 
-| Si tocas... | Ve a |
+| If you touch... | Go to |
 |---|---|
-| ISO build + perfil | `arch-iso-builder` |
-| .img + particionado | `arch-appliance-img` |
-| escritorio + panel (L0-L6) | `arch-desktop-layers` |
+| ISO build + profile | `arch-iso-builder` |
+| .img + partitioning | `arch-appliance-img` |
+| desktop + panel (L0-L6) | `arch-desktop-layers` |
 | payloads + runtime | `arch-payload-manifest` |
-| "esto falla con..." | `arch-archlinux-pitfalls` |
-| repo frozen + pacman | `arch-frozen-repo` |
+| "this fails with..." | `arch-archlinux-pitfalls` |
+| frozen repo + pacman | `arch-frozen-repo` |

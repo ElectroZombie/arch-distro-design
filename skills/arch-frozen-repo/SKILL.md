@@ -5,78 +5,78 @@ description: 'Create and maintain a frozen (offline, signed) pacman repository i
 
 # Arch Frozen Repo — General Purpose
 
-Skill para crear y mantener un repositorio pacman **congelado** (offline,
-firmado, reproducible) que vive dentro de la ISO o del appliance `.img`. Este
-repositorio es el que el live/appliance usa para sincronizar paquetes **sin
-internet**, y es la fuente segura para `pacman -Syu`.
+Skill for creating and maintaining a **frozen** (offline, signed, reproducible)
+pacman repository that lives inside the ISO or the `.img` appliance. This
+repository is what the live system/appliance uses to synchronize packages
+**without internet**, and it is the trusted source for `pacman -Syu`.
 
-## ⚠️ Integra con el Brief de `arch-distro-design`
+## ⚠️ Integrates with the `arch-distro-design` Brief
 
-> **Directiva desde `arch-distro-design`:** Las decisiones sobre repos y
-> actualizaciones se toman aquí. El `Brief` determina:
+> **Directive from `arch-distro-design`:** Decisions about repos and updates
+> are made here. The `Brief` determines:
 
-| Categoría desde Brief | Decisión en `arch-frozen-repo` |
+| Category from the Brief | Decision in `arch-frozen-repo` |
 |---|---|
-| **Objetivo** | Si el repo sirve para ISO live, .img, o ambos. Define `versions.txt` y política. |
-| **Red** | Si internet está desactivada por defecto (`inactive` networkd). El repo frozen es la única fuente. |
-| **Apps / Payloads** | Quién materializa los payloads: el repo frozen provee paquetes, pero la materialización es desde repo propio de la app. |
-| **Inmutabilidad** | El repo frozen es **offline** por diseño; actualizaciones solo con `appliance-update.service`. |
-| **Política de updates** | `versions.txt` commiteado tras cada build. El usuario puede cambiar la política de red (§3). |
+| **Objective** | Whether the repo serves a live ISO, a .img, or both. Defines `versions.txt` and policy. |
+| **Network** | Whether internet is disabled by default (`inactive` networkd). The frozen repo is the only source. |
+| **Apps / Payloads** | Who materializes the payloads: the frozen repo provides packages, but materialization comes from the app's own repo. |
+| **Immutability** | The frozen repo is **offline** by design; updates only through `appliance-update.service`. |
+| **Update policy** | `versions.txt` committed after every build. The user can change the network policy (§3). |
 
-> **Si el `Brief` no está completado, la generación del repo frozen se pausa y
-> se pide al usuario las 7 categorías obligatorias.**
+> **If the `Brief` is not complete, generation of the frozen repo pauses and the
+> user is asked for the 7 mandatory categories.**
 
-## Propósito
+## Purpose
 
-- Permite que la ISO o .img funcionen **100% offline** después de construirse.
-- Evita que el admin dependa de internet para actualizaciones (política del proyecto).
-- Sirve como fuente de paquetes para la instalación de payloads (apps).
-- Se versiona junto con la ISO/appliance (archivos `versions.txt` + `SHA256SUMS`).
+- Allows the ISO or .img to work **100% offline** after being built.
+- Prevents the admin from depending on the internet for updates (project policy).
+- Serves as the package source for installing payloads (apps).
+- Is versioned together with the ISO/appliance (`versions.txt` + `SHA256SUMS` files).
 
-## Artefactos producidos
+## Produced artifacts
 
-| Archivo | Contenido |
+| File | Content |
 |---|---|
-| `arch-repo/appliance.db.tar.gz` | Base de datos de pacman firmada |
-| `arch-repo/*.pkg.tar.zst` | Paquetes binarios (congelados) |
-| `versions.txt` | Lista `paquete version` (para rollback/verificación) |
-| `x86_64/` | Estructura de directorios del repo |
+| `arch-repo/appliance.db.tar.gz` | Signed pacman database |
+| `arch-repo/*.pkg.tar.zst` | Binary packages (frozen) |
+| `versions.txt` | `package version` list (for rollback/verification) |
+| `x86_64/` | Repository directory structure |
 
-## Flujo de trabajo obligatorio
+## Mandatory workflow
 
-### 1. Construir el repo congelado (después de ISO build)
+### 1. Build the frozen repo (after the ISO build)
 
 ```bash
 set -euo pipefail
 
-# 1. Directorio temporal con los .pkg a instalar (SIN instalarlos)
+# 1. Temporary directory with the .pkg files to install (WITHOUT installing them)
 mkdir -p "$WORKDIR/pkg"
 sudo pacman -Sw --cachedir "$WORKDIR/pkg" \
   --config builder/arch-profile/pacman.conf \
   $(cat builder/repo-packages.txt)
 
-# 2. Empaquetar el repo dentro del overlay airootfs
+# 2. Package the repo inside the airootfs overlay
 mkdir -p "$ISODIR/builder/arch-profile/airootfs/arch-repo"
 cp "$WORKDIR/pkg"/*.pkg.tar.zst "$ISODIR/builder/arch-profile/airootfs/arch-repo/"
 repo-add "$ISODIR/builder/arch-profile/airootfs/arch-repo/appliance.db.tar.gz" \
   "$ISODIR/builder/arch-profile/airootfs/arch-repo"/*.pkg.tar.zst
 
-# 3. Congelar versiones documentadas
+# 3. Freeze the documented versions
 pacman -Sp --print-format '%n %v' --config builder/arch-profile/pacman.conf \
   $(cat builder/repo-packages.txt) > out/versions.txt
 ```
 
-### 2. Estructura del repo `arch-repo/`
+### 2. `arch-repo/` structure
 
 ```
 arch-repo/
-├── appliance.db.tar.gz   # DB firmada (SigLevel PackageRequired en el live)
+├── appliance.db.tar.gz   # Signed DB (SigLevel PackageRequired on the live system)
 ├── pkg1.pkg.tar.zst
 ├── pkg2.pkg.tar.zst
-└── ... (todos los paquetes LIVE + REPO extras)
+└── ... (all LIVE + REPO extra packages)
 ```
 
-### 3. Consumo desde el live (`/etc/pacman.conf` del live)
+### 3. Consumption from the live system (the live system's `/etc/pacman.conf`)
 
 ```ini
 [appliance]
@@ -84,98 +84,99 @@ SigLevel = PackageRequired
 Server = file:///arch-repo
 ```
 
-El live monta este repo al root (`/arch-repo`) porque hace `switch_root` sobre
-el squashfs, así que `/arch-repo` es una ruta absoluta dentro de la sesión live.
+The live system mounts this repo at root (`/arch-repo`) because it does
+`switch_root` onto the squashfs, so `/arch-repo` is an absolute path inside the
+live session.
 
-### 4. Consumo desde el appliance (después de `pacstrap`)
+### 4. Consumption from the appliance (after `pacstrap`)
 
-El appliance ya tiene los paquetes instalados. Si se quiere actualizar:
+The appliance already has the packages installed. To update:
 
 ```bash
-# Usar el repo congelado que ya está en el .img
+# Use the frozen repo that is already in the .img
 pacman -Sy --root / --config /etc/pacman.conf
-# O actualizar solo los paquetes del repo appliance
+# Or update only the packages from the appliance repo
 pacman -Su --noconfirm --ignore glibc
 ```
 
-### 5. Actualizaciones controladas (política del proyecto)
+### 5. Controlled updates (project policy)
 
-| Escenario | Acción |
+| Scenario | Action |
 |---|---|
-| Actualización normal | `pacman -Syu` con networkd temporalmente arriba |
-| Solo repo appliance | `pacman -Sy --root / --config /etc/pacman.conf` (usa `file:///arch-repo`) |
-| Evitar actualizar glibc | `pacman -Su --noconfirm --ignore glibc` |
-| Log de versiones | `versions.txt` commiteado tras cada build |
+| Normal update | `pacman -Syu` with networkd temporarily up |
+| Appliance repo only | `pacman -Sy --root / --config /etc/pacman.conf` (uses `file:///arch-repo`) |
+| Avoid updating glibc | `pacman -Su --noconfirm --ignore glibc` |
+| Version log | `versions.txt` committed after every build |
 
-### 6. Validación
+### 6. Validation
 
-| Check | Comando | Esperado |
+| Check | Command | Expected |
 |---|---|---|
-| DB firmada existe | `ls arch-repo/appliance.db.tar.gz` | presente |
-| Paquetes .pkg existen | `ls arch-repo/*.pkg.tar.zst` | lista no vacía |
-| versions.txt existe | `cat versions.txt` | `linux 6.6.8-1-etc` etc |
-| SigLevel correcto | `grep 'PackageRequired' etc/pacman.conf` | encontrado |
-| Repo consumible | `pacman -Sy --root / -c /etc/pacman.conf` | sync sin error |
+| Signed DB exists | `ls arch-repo/appliance.db.tar.gz` | present |
+| .pkg packages exist | `ls arch-repo/*.pkg.tar.zst` | non-empty list |
+| versions.txt exists | `cat versions.txt` | `linux 6.6.8-1-etc` etc. |
+| SigLevel correct | `grep 'PackageRequired' etc/pacman.conf` | found |
+| Repo consumable | `pacman -Sy --root / -c /etc/pacman.conf` | sync without error |
 
-## ⚠️ Sección AVANZADA: gestores de paquetes alternativos (AUR)
+## ⚠️ ADVANCED section: alternative package managers (AUR)
 
-> 🔴 **ADVERTENCIA DE SEGURIDAD — NO USAR POR DEFECTO.**
-> Los paquetes AUR **no están firmados** por el keyring oficial de Arch. Incluir
-> un repo AUR en el live **rompe el modelo de confianza** del repo frozen y
-> requiere `SigLevel = Optional` (verificación de firma desactivada). Esto es
-> exactamente el tipo de patrón que un escáner de seguridad marca como riesgo.
-> **Solo úsalo si el `Brief` lo autoriza explícitamente y el usuario acepta el
-> riesgo por escrito.**
+> 🔴 **SECURITY WARNING — DO NOT USE BY DEFAULT.**
+> AUR packages are **not signed** by the official Arch keyring. Including an
+> AUR repo in the live system **breaks the trust model** of the frozen repo and
+> requires `SigLevel = Optional` (signature verification disabled). This is
+> exactly the kind of pattern a security scanner flags as a risk.
+> **Only use it if the `Brief` explicitly authorizes it and the user accepts the
+> risk in writing.**
 
-Si el Brief lo autoriza, el flujo es:
+If the Brief authorizes it, the flow is:
 
-### A.1 Inyección de repos AUR en el overlay `airootfs/`
+### A.1 Injecting AUR repos into the `airootfs/` overlay
 
 ```bash
 set -euo pipefail
 
 mkdir -p "$ISODIR/builder/arch-profile/airootfs/aur-repo"
 
-# Opción A: copiar .pkg.tar.zst ya compilados (PREFERIDO — sin red en build)
+# Option A: copy already-built .pkg.tar.zst files (PREFERRED — no network during build)
 cp "$WORKDIR/pkg-aur"/*.pkg.tar.zst \
    "$ISODIR/builder/arch-profile/airootfs/aur-repo/"
 
-# Opción B: clonar y compilar (requiere red y revisión manual del PKGBUILD)
-# ⚠️ Revisa el PKGBUILD antes de ejecutar makepkg. Nunca `makepkg -si` a ciegas.
+# Option B: clone and build (requires network and manual PKGBUILD review)
+# ⚠️ Review the PKGBUILD before running makepkg. Never `makepkg -si` blindly.
 ```
 
-### A.2 `/etc/pacman.conf` del live con repo AUR
+### A.2 Live `/etc/pacman.conf` with the AUR repo
 
 ```ini
 [appliance]
 SigLevel = PackageRequired
 Server = file:///arch-repo
 
-# 🔴 Solo si el Brief lo autoriza. SigLevel=Optional desactiva la verificación
-# de firma para estos paquetes. Aísla este repo del resto.
+# 🔴 Only if the Brief authorizes it. SigLevel=Optional disables signature
+# verification for these packages. Isolate this repo from the rest.
 [aur]
 SigLevel = Optional
 Server = file:///aur-repo
 ```
 
-### A.3 Consumo desde el appliance
+### A.3 Consumption from the appliance
 
 ```bash
-# Desde el appliance, usando yay sobre el repo frozen (si está instalado)
+# From the appliance, using yay against the frozen repo (if installed)
 yay -Sy --noconfirm
 
-# O usando pamac con el config del sistema
+# Or using pamac with the system config
 pamac update --force-refresh
 ```
 
-## Handoff a otras skills del grupo
+## Handoff to other skills in the group
 
-| Si tocas... | Ve a |
+| If you touch... | Go to |
 |---|---|
-| perfil + packages | `arch-iso-builder` |
-| particionado + .img | `arch-appliance-img` |
-| manifiesto KEY=VALUE + runtime | `arch-payload-manifest` |
-| escritorio, panel, kiosco | `arch-desktop-layers` |
-| pruebas QEMU, boot, apagado | `arch-qemu-validation` |
-| "esto falló con..." | `arch-archlinux-pitfalls` |
-| validar hardware antes de escribir | `arch-hardware-handler` |
+| profile + packages | `arch-iso-builder` |
+| partitioning + .img | `arch-appliance-img` |
+| KEY=VALUE manifest + runtime | `arch-payload-manifest` |
+| desktop, panel, kiosk | `arch-desktop-layers` |
+| QEMU tests, boot, shutdown | `arch-qemu-validation` |
+| "this failed with..." | `arch-archlinux-pitfalls` |
+| validate hardware before writing | `arch-hardware-handler` |

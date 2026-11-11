@@ -5,56 +5,56 @@ description: 'Build persistent Arch .img appliances with EFI+SYS+DATA partitions
 
 # Arch Appliance Image Builder — General Purpose
 
-Skill para crear imágenes `.img` persistentes de Arch Linux con particiones
-EFI (512 MB), SYS (root) y DATA (label `DATA`). Sirve para **cualquier**
-appliance Arch. El .img es auto-suficiente: contiene todo el SO y los datos, y
-la partición DATA se puede montar en otra máquina sin tocar el SO.
+Skill for creating persistent Arch Linux `.img` images with EFI (512 MB), SYS
+(root) and DATA (label `DATA`) partitions. It works for **any** Arch appliance.
+The .img is self-sufficient: it contains the entire OS and the data, and the
+DATA partition can be mounted on another machine without touching the OS.
 
-## ⚠️ OBLIGATORIO: Brief previo
+## ⚠️ MANDATORY: prior Brief
 
-> **Directiva desde `arch-distro-design`:** Esta skill **NUNCA** debe invocarse
-> sin antes haber completado el `Brief` de diseño (7 categorías obligatorias).
+> **Directive from `arch-distro-design`:** This skill must **NEVER** be invoked
+> without first completing the design `Brief` (7 mandatory categories).
 
-| Categoría | Qué define para esta skill |
+| Category | What it defines for this skill |
 |---|---|
-| **Objetivo** | Si es .img persistente, define particionado y tamaño de DATA |
-| **Formato de salida** | Determina si construimos .img o ISO+.img |
-| **Hardware objetivo** | Disco tamaño mínimo 8 GB, tipo (HDD/SSD/NVMe/USB). Valida con `arch-hardware-handler` |
-| **Red** | Política de networkd: por defecto `inactive`, admin lo habilita |
-| **Apps / Payloads** | Si van en .img o se materializan después en el appliance |
-| **Inmutabilidad** | Si root es rw con regla de update-unit o squashfs |
-| **Política de updates** | Cómo se actualiza (por defecto `pacman -Syu` con networkd temporal) |
+| **Objective** | If it is a persistent .img, it defines partitioning and DATA size |
+| **Output format** | Determines whether we build a .img or ISO+.img |
+| **Target hardware** | Minimum 8 GB disk, type (HDD/SSD/NVMe/USB). Validate with `arch-hardware-handler` |
+| **Network** | networkd policy: `inactive` by default, the admin enables it |
+| **Apps / Payloads** | Whether they go in the .img or are materialized later on the appliance |
+| **Immutability** | Whether root is rw with an update-unit rule, or squashfs |
+| **Update policy** | How it updates (by default `pacman -Syu` with temporary networkd) |
 
-> **Si el `Brief` no está completado, detener la invocación y pedir al usuario
-> las 7 categorías obligatorias.**
+> **If the `Brief` is not complete, stop the invocation and ask the user for
+> the 7 mandatory categories.**
 
-## Cuándo usar esta skill
+## When to use this skill
 
-- El usuario quiere una imagen `.img` en lugar de (o después de) una ISO.
-- El `arch-distro-design` ya tomó decisiones sobre particionado y objetivos.
-- Se necesita una partición DATA portátil (`DATA`) montable en otra máquina.
-- Se quiere un sistema persistente con servicios systemd, ssh, y particionado
-  EFI+SYS+DATA.
-- Se quiere validar el appliance en QEMU antes de grabar en USB real.
+- The user wants an `.img` image instead of (or after) an ISO.
+- `arch-distro-design` has already made decisions about partitioning and objectives.
+- A portable DATA partition (`DATA`) is needed, mountable on another machine.
+- A persistent system with systemd services, ssh, and EFI+SYS+DATA partitioning
+  is needed.
+- The appliance must be validated in QEMU before writing it to a real USB drive.
 
-## ⚠️ OBLIGATORIO: Validación con `arch-hardware-handler`
+## ⚠️ MANDATORY: validation with `arch-hardware-handler`
 
-Antes de escribir en cualquier disco físico o crear .imgs, pasar por el
-checklist de `arch-hardware-handler`:
+Before writing to any physical disk or creating .imgs, go through the
+`arch-hardware-handler` checklist:
 
-1. ✅ Identificar disco correcto: `lsblk -o NAME,SIZE,MODEL` - NO es `/dev/sda` del host
-2. ✅ Confirmar tamaño mínimo: ≥ 8 GB
-3. ✅ Particionado GPT limpio: `parted -s "$DESTINO" mklabel gpt`
-4. ✅ Particiones EFI (512 MB), SYS, DATA con label `DATA`
-5. ✅ Formateo: `mkfs.vfat -F32 "${DESTINO}1"`, `mkfs.ext4 "${DESTINO}2"`,
+1. ✅ Identify the correct disk: `lsblk -o NAME,SIZE,MODEL` — it is NOT the host's `/dev/sda`
+2. ✅ Confirm the minimum size: ≥ 8 GB
+3. ✅ Clean GPT partitioning: `parted -s "$DESTINO" mklabel gpt`
+4. ✅ EFI (512 MB), SYS, DATA partitions with label `DATA`
+5. ✅ Formatting: `mkfs.vfat -F32 "${DESTINO}1"`, `mkfs.ext4 "${DESTINO}2"`,
    `mkfs.ext4 -L DATA "${DESTINO}3"`
-6. ✅ `sync` tres veces después de escribir
+6. ✅ `sync` three times after writing
 
-## Parámetros de particionado (regla de tamaños)
+## Partitioning parameters (size rule)
 
-| Tamaño disco | Partición | Tamaño | Tipo | Montaje |
+| Disk size | Partition | Size | Type | Mount |
 |---|---|---|---|---|
-| **< 8 GB** | ❌ Rechazar | Disco muy pequeño para el modelo | | |
+| **< 8 GB** | ❌ Reject | Disk too small for the model | | |
 | **8–10 GB** | EFI | 512 MB | vfat | `/boot` |
 | | SYS | 3 GB | ext4 | `/` |
 | | DATA | 2 GB | ext4 | `/data` (label `DATA`) |
@@ -63,52 +63,53 @@ checklist de `arch-hardware-handler`:
 | | DATA | 5 GB | ext4 | `/data` (label `DATA`) |
 | **> 20 GB** | EFI | 512 MB | vfat | `/boot` |
 | | SYS | 20 GB | ext4 | `/` |
-| | DATA | Resto GB | ext4 | `/data` (label `DATA`) |
+| | DATA | Remaining GB | ext4 | `/data` (label `DATA`) |
 
-> **Reglas obligatorias:**
-> - Disco < 8 GB → abortar
-> - SYS < 6 GB → abortar
-> - EFI FIJA a 512 MB
+> **Mandatory rules:**
+> - Disk < 8 GB → abort
+> - SYS < 6 GB → abort
+> - EFI FIXED at 512 MB
 > - DATA label = `DATA`
-> - El SO de la partición DATA debe ser **montable en otra máquina** sin reformatear
+> - The filesystem on the DATA partition must be **mountable on another machine**
+>   without reformatting
 
-## Flujo de trabajo obligatorio
+## Mandatory workflow
 
-### 1. `build.sh` CLI (parámetros obligatorios)
+### 1. `build.sh` CLI (mandatory parameters)
 
 ```
 Usage: build.sh --disk <PATH> --profile <PROFILE> --yes --dry-run
 ```
 
 Flags:
-- `--disk <PATH>`: Ruta al disco/archivo .img objetivo
-- `--profile <PROFILE>`: Ruta al perfil archiso (builder/arch-profile)
-- `--yes`: Saltar confirmaciones (solo para scripts automatizados)
-- `--dry-run`: Simular TODO pero NO escribir disco
-- `--no-ask`: Igual que `--yes` (compatibilidad)
+- `--disk <PATH>`: Path to the target disk/.img file
+- `--profile <PROFILE>`: Path to the archiso profile (builder/arch-profile)
+- `--yes`: Skip confirmations (automated scripts only)
+- `--dry-run`: Simulate EVERYTHING but do NOT write to disk
+- `--no-ask`: Same as `--yes` (compatibility)
 
-**Validaciones previas obligatorias:**
-- `--disk` existe y tiene tamaño >= 8 GB (sino abortar)
-- `--disk` no es disco del host `/dev/sda` ni `/dev/nvme0n1`
-- Verificar que `--disk` no es ninguna partición principal del host
-- `--profile` existe y tiene `profiledef.sh`, `packages.x86_64`, `pacman.conf`
-- `--yes` o interacción doble: "Escribir .img de <tamaño>? Escribir S/N"
+**Mandatory pre-flight validations:**
+- `--disk` exists and has size >= 8 GB (otherwise abort)
+- `--disk` is not the host disk `/dev/sda` or `/dev/nvme0n1`
+- Verify that `--disk` is not any primary host partition
+- `--profile` exists and contains `profiledef.sh`, `packages.x86_64`, `pacman.conf`
+- `--yes` or double interaction: "Write .img of <size>? Write Y/N"
 
-### 2. Particionado `parted`
+### 2. `parted` partitioning
 
-| Paso | Comando | Resultado |
+| Step | Command | Result |
 |---|---|---|
-| Limpiar tabla | `parted -s "$DISK" mklabel gpt` | Nueva tabla GPT |
+| Clear table | `parted -s "$DISK" mklabel gpt` | New GPT table |
 | EFI | `parted -s "$DISK" mkpart primary fat32 1MiB 513MiB` | EFI 512 MB |
-| Set EFI boot | `parted -s "$DISK" set 1 esp on` | Marcar boot |
+| Set EFI boot | `parted -s "$DISK" set 1 esp on` | Mark boot |
 | SYS | `parted -s "$DISK" mkpart primary ext4 513MiB 6513MiB` | SYS ~6 GB |
-| DATA | `parted -s "$DISK" mkpart primary ext4 6513MiB -0s` | Resto → DATA |
-| Sincronizar | `partprobe` / `sync` | Refrescar kernel |
+| DATA | `parted -s "$DISK" mkpart primary ext4 6513MiB -0s` | Remainder → DATA |
+| Synchronize | `partprobe` / `sync` | Refresh the kernel |
 
-> **Nombres de particiones:** No fijos a `sda1`/`sda2`/`sda3`. El esquema
-> estándar es EFI+SYS+DATA, pero el usuario puede solicitar otro.
+> **Partition names:** Not fixed to `sda1`/`sda2`/`sda3`. The standard scheme is
+> EFI+SYS+DATA, but the user may request another one.
 
-### 3. Formatear y etiquetas
+### 3. Format and labels
 
 ```bash
 set -euo pipefail
@@ -123,7 +124,7 @@ mkfs.ext4 -L SYS "${DISK}2"
 mkfs.ext4 -L DATA "${DISK}3"
 ```
 
-### 4. `pacstrap` del target
+### 4. `pacstrap` of the target
 
 ```bash
 set -euo pipefail
@@ -150,35 +151,35 @@ genfstab -U /mnt >> /mnt/etc/fstab
 echo "LABEL=DATA /data ext4 defaults 0 2" >> /mnt/etc/fstab
 ```
 
-### 5. Configuración post-instalación (dentro del chroot)
+### 5. Post-install configuration (inside the chroot)
 
-> 🔴 **CRÍTICO — contraseña de root:** NUNCA uses `root:root` ni `toor` en
-> producción. Este placeholder debe reemplazarse por una contraseña fuerte
-> generada por el usuario o por `passwd` interactivo. El administrador debe
-> cambiarla en el primer arranque.
+> 🔴 **CRITICAL — root password:** NEVER use `root:root` or `toor` in
+> production. This placeholder must be replaced with a strong password
+> generated by the user or with interactive `passwd`. The administrator must
+> change it on first boot.
 
 ```bash
 arch-chroot /mnt <<'CHROOT'
 set -euo pipefail
 
-# 🔴 Contraseña de root — REEMPLAZAR por valor seguro antes del build.
-# Opción A (recomendada): forzar cambio en primer login.
-passwd -e root   # marca la contraseña como expirada → pide cambiarla al entrar
-# Opción B: contraseña generada por el usuario (nunca "root"/"toor"):
+# 🔴 Root password — REPLACE with a secure value before the build.
+# Option A (recommended): force a change on first login.
+passwd -e root   # marks the password as expired → asks for a new one at login
+# Option B: user-generated password (never "root"/"toor"):
 #   echo "root:${ROOT_PASSWORD_HASH}" | chpasswd -e
 
 # locale + TZ
 ln -sf /usr/share/zoneinfo/America/Havana /etc/localtime
 printf 'es_CU.UTF-8 UTF-8\n' >> /etc/locale.gen
-# locale-gen se deja pendiente: el usuario elige en el login
+# locale-gen is left pending: the user chooses at login
 
 # ssh
 systemctl enable sshd
 
-# networkd (por defecto DESACTIVADO, solo admin lo habilita)
+# networkd (DISABLED by default, only the admin enables it)
 systemctl disable systemd-networkd
 
-# user wheel para polkit/udisks2
+# wheel user for polkit/udisks2
 usermod -aG wheel root
 
 # DATA dir
@@ -188,25 +189,25 @@ chmod 0755 /data
 CHROOT
 ```
 
-### 6. Systemd services incluidos
+### 6. Included systemd services
 
-| Service | Propósito |
+| Service | Purpose |
 |---|---|
-| `getty@tty1.service` | Autologin root en tty1 |
-| `sshd.service` | SSH en puerto 22 (hostfwd 60022) |
-| `appliance-update.service` | **Único** servicio que escribe en root (`pacman -Syu`) |
-| `systemd-networkd` | **Desactivado** por defecto (red solo si admin lo permite) |
+| `getty@tty1.service` | Root autologin on tty1 |
+| `sshd.service` | SSH on port 22 (hostfwd 60022) |
+| `appliance-update.service` | The **only** service that writes to root (`pacman -Syu`) |
+| `systemd-networkd` | **Disabled** by default (network only if the admin allows it) |
 
-### 7. Partición DATA portable (clave)
+### 7. Portable DATA partition (key)
 
-| Requisito | Cómo se cumple |
+| Requirement | How it is met |
 |---|---|
-| Montable en **otra** máquina | `LABEL=DATA` + `ext4` |
-| Sin necesidad de reformatear | `mkfs.ext4 -L DATA` |
-| No toca el SO de la máquina destino | Solo monta `/data` |
-| Tamaño conocido | Según regla: <10 GB→2 GB · 10-20 GB→5 GB · >20 GB→SYS 20 GB+resto |
+| Mountable on **another** machine | `LABEL=DATA` + `ext4` |
+| No need to reformat | `mkfs.ext4 -L DATA` |
+| Does not touch the target machine's OS | Only mounts `/data` |
+| Known size | By rule: <10 GB→2 GB · 10-20 GB→5 GB · >20 GB→SYS 20 GB+remainder |
 
-**Comprobación después del build:**
+**Post-build check:**
 
 ```bash
 mkdir -p /mnt/data
@@ -214,47 +215,47 @@ mount -L DATA /mnt/data
 ls /mnt/data/
 ```
 
-### 8. Validación (checklist)
+### 8. Validation (checklist)
 
-| # | Comprobación | Comando | Esperado |
+| # | Check | Command | Expected |
 |---|---|---|---|
-| 1 | Tabla de particiones | `parted -s $DISK print` | EFI + SYS + DATA (`DATA`) |
-| 2 | El appliance arranca | consola serie / SSH | prompt de login |
-| 3 | Los tres puntos de montaje | `findmnt / / /data` | ext4 + ext4 + DATA |
-| 4 | DATA sobrevive al reboot | escribir fichero → reiniciar → leer | presente |
-| 5 | El panel kiosco arranca | `pgrep -a openbox; pgrep -a tint2` | ambos |
-| 6 | El kiosco sirve la app | `curl -s http://127.0.0.1:3000/health` | `{"status":"ok",...}` |
-| 7 | La BD responde | `systemctl is-active postgresql` | `active` |
-| 8 | SSH funciona | `ssh -p 60022 root@localhost` | login |
-| 9 | Red por LAN (DHCP) | `ip -4 addr show` | IP asignada |
-| 10 | **Sin red por defecto** | `systemctl is-active systemd-networkd` | `inactive` |
-| 11 | Partición DATA portable | montar `sda3` en **otra** máquina | legible, etiqueta `DATA` |
-| 12 | `appliance-update` existe | `systemctl cat appliance-update.service` | unit presente |
-| 13 | Podman **no** instalado | `command -v podman` | vacío |
+| 1 | Partition table | `parted -s $DISK print` | EFI + SYS + DATA (`DATA`) |
+| 2 | The appliance boots | serial console / SSH | login prompt |
+| 3 | The three mount points | `findmnt / / /data` | ext4 + ext4 + DATA |
+| 4 | DATA survives a reboot | write file → reboot → read | present |
+| 5 | The kiosk panel starts | `pgrep -a openbox; pgrep -a tint2` | both |
+| 6 | The kiosk serves the app | `curl -s http://127.0.0.1:3000/health` | `{"status":"ok",...}` |
+| 7 | The DB responds | `systemctl is-active postgresql` | `active` |
+| 8 | SSH works | `ssh -p 60022 root@localhost` | login |
+| 9 | LAN network (DHCP) | `ip -4 addr show` | IP assigned |
+| 10 | **No network by default** | `systemctl is-active systemd-networkd` | `inactive` |
+| 11 | Portable DATA partition | mount `sda3` on **another** machine | readable, label `DATA` |
+| 12 | `appliance-update` exists | `systemctl cat appliance-update.service` | unit present |
+| 13 | Podman **not** installed | `command -v podman` | empty |
 
-> La **10** valida la política "internet desactivado por defecto".
-> La **11** valida el requisito de "DATA montable en otra máquina".
+> **10** validates the "internet disabled by default" policy.
+> **11** validates the "DATA mountable on another machine" requirement.
 
-### 9. Handoff a otras skills del grupo
+### 9. Handoff to other skills in the group
 
-| Si tocas... | Ve a |
+| If you touch... | Go to |
 |---|---|
-| perfil de paquetes | `arch-iso-builder` |
-| repo frozen + pacman config | `arch-frozen-repo` |
-| manifiesto KEY=VALUE + runtime | `arch-payload-manifest` |
-| escritorio, panel, kiosco | `arch-desktop-layers` |
-| pruebas QEMU, boot, apagado | `arch-qemu-validation` |
-| "esto falló con..." | `arch-archlinux-pitfalls` |
-| validar hardware antes de escribir | `arch-hardware-handler` |
+| package profile | `arch-iso-builder` |
+| frozen repo + pacman config | `arch-frozen-repo` |
+| KEY=VALUE manifest + runtime | `arch-payload-manifest` |
+| desktop, panel, kiosk | `arch-desktop-layers` |
+| QEMU tests, boot, shutdown | `arch-qemu-validation` |
+| "this failed with..." | `arch-archlinux-pitfalls` |
+| validate hardware before writing | `arch-hardware-handler` |
 
-### 10. Errores comunes
+### 10. Common errors
 
-| Error | Síntoma | Prevención |
+| Error | Symptom | Prevention |
 |---|---|---|
-| `error -71` al retirar USB | Escritura sostenida sin `sync` + `kill -9` | Siempre `sync` 3 veces; nunca `kill -9` |
-| Particionado sobre `/dev/sda` (host) | Destruye el disco del sistema | `lsblk` siempre antes; validar que no es partición principal host |
-| `ffs: bad journal` en DATA | `mkfs.ext4` sin etiqueta o flags incorrectos | Usar sintaxis exacta del skill |
-| `appliance-update` no arranca | Falta `systemctl enable appliance-update` | Añadir al chroot o unit file |
-| Sin red después de boot | `systemctl start systemd-networkd` no hace nada | Recordar: por defecto `inactive`, admin lo habilita |
-| Contraseña de root débil | `root:root` por defecto | Usar `passwd -e root` (fuerza cambio) o hash seguro |
-| `locale` no configurado | El sistema no tiene locale activo por defecto | Dejar `locale-gen` pendiente y elegir en login |
+| `error -71` when removing the USB | Sustained write without `sync` + `kill -9` | Always `sync` 3 times; never `kill -9` |
+| Partitioning `/dev/sda` (host) | Destroys the system disk | Always run `lsblk` first; verify it is not the host's main partition |
+| `ffs: bad journal` on DATA | `mkfs.ext4` without a label or with wrong flags | Use the exact syntax from this skill |
+| `appliance-update` does not start | Missing `systemctl enable appliance-update` | Add it in the chroot or the unit file |
+| No network after boot | `systemctl start systemd-networkd` does nothing | Remember: `inactive` by default, the admin enables it |
+| Weak root password | `root:root` by default | Use `passwd -e root` (forces a change) or a secure hash |
+| `locale` not configured | The system has no active locale by default | Leave `locale-gen` pending and choose at login |

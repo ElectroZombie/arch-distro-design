@@ -5,102 +5,102 @@ description: 'Parse and materialize app payloads from their own repositories. KE
 
 # Arch Payload Manifest — General Purpose
 
-Skill para leer, validar y materializar **payloads** (sistemas autoalojados
-completos) desde **el propio repositorio de cada app**. Este repo **no
-vendoriza** código de apps: cada payload vive en su propio repo y se materializa
-en el appliance cuando se instala.
+Skill for reading, validating, and materializing **payloads** (complete
+self-hosted systems) from **each app's own repository**. This repo does **not
+vendor** app code: each payload lives in its own repo and is materialized on the
+appliance when it is installed.
 
-## Principio innegociable
+## Non-negotiable principle
 
-> ❌ **Nunca** se vendoriza el código de una app en el repo del proyecto.
-> ✅ El payload se declara por **manifiesto** y se materializa desde el repo
-> propio de la app, en el momento de la instalación.
+> ❌ An app's code is **never** vendored into the project repo.
+> ✅ The payload is declared by a **manifest** and materialized from the app's
+> own repo at install time.
 
-Esto mantiene el constructor genérico: una ISO sirve para N apps distintas, y
-actualizar una app no obliga a reconstruir la ISO.
+This keeps the builder generic: one ISO serves N different apps, and updating an
+app does not force a rebuild of the ISO.
 
-## Formato del manifiesto
+## Manifest format
 
-`KEY=VALUE`, una clave por línea, parseable con **bash puro** (sin `jq`, `yq` ni
-`python`). Comentarios con `#`. Líneas vacías se ignoran.
+`KEY=VALUE`, one key per line, parseable with **pure bash** (no `jq`, `yq`, or
+`python`). Comments use `#`. Empty lines are ignored.
 
 ```bash
-# Ejemplo: apps/mail/app.conf
+# Example: apps/mail/app.conf
 NAME=Mail System
 VERSION=1.0.0
 SOURCE=https://github.com/<owner>/mail-system.git
 SOURCE_REF=main
 
-# --- red ---
+# --- network ---
 PORT=8080
 BIND=127.0.0.1
 
-# --- datos ---
+# --- data ---
 DATABASE=embedded
 DATA_DIR=/data/apps/mail
 
-# --- proceso ---
+# --- process ---
 COMMAND=/usr/local/bin/mail-system
 AUTOSTART=true
 RESTART=always
 HEALTHCHECK=http://127.0.0.1:8080/health
 ```
 
-## Claves reconocidas
+## Recognized keys
 
-| Clave | Obligatoria | Valores | Significado |
+| Key | Mandatory | Values | Meaning |
 |---|---|---|---|
-| `NAME` | ✅ | texto | Nombre de la app (para logs y UI) |
-| `VERSION` | ✅ | texto | Versión del payload (queda en log de updates) |
-| `SOURCE` | ✅ | URL | Repo/artefacto de origen (⚠️ **no** se vendoriza) |
-| `SOURCE_REF` | | ref git | Rama, tag o commit a materializar (default: `main`) |
-| `RUNTIME` | | `native`·`nspawn`·`podman` | Modelo de aislamiento (default `native`) |
-| `PORT` | | entero | Puerto local que sirve la app |
-| `BIND` | | IP | Dirección de escucha (default `127.0.0.1`) |
-| `DATABASE` | | `embedded`·`external`·`none` | Motor de datos |
-| `DATABASE_URL` | | URL | Obligatorio si `DATABASE=external` |
-| `DATA_DIR` | | ruta | Directorio persistente bajo `/data` |
-| `COMMAND` | | cmd | Comando de arranque (runtime `native`) |
-| `ENV` | | `K=V` | Variable de entorno (repetible) |
-| `AUTOSTART` | | `true`·`false` | Si arranca con el sistema |
-| `RESTART` | | `always`·`on-failure`·`never` | Política de reinicio |
-| `HEALTHCHECK` | | URL/cmd | Sonda de salud (opcional) |
-| `VOLUMES` | | `host:cont` | Solo `podman`: mapeos (⚠️ ver reglas) |
+| `NAME` | ✅ | text | App name (for logs and UI) |
+| `VERSION` | ✅ | text | Payload version (stored in the update log) |
+| `SOURCE` | ✅ | URL | Source repo/artifact (⚠️ **not** vendored) |
+| `SOURCE_REF` | | git ref | Branch, tag, or commit to materialize (default: `main`) |
+| `RUNTIME` | | `native`·`nspawn`·`podman` | Isolation model (default `native`) |
+| `PORT` | | integer | Local port the app serves |
+| `BIND` | | IP | Listen address (default `127.0.0.1`) |
+| `DATABASE` | | `embedded`·`external`·`none` | Data engine |
+| `DATABASE_URL` | | URL | Mandatory if `DATABASE=external` |
+| `DATA_DIR` | | path | Persistent directory under `/data` |
+| `COMMAND` | | cmd | Start command (runtime `native`) |
+| `ENV` | | `K=V` | Environment variable (repeatable) |
+| `AUTOSTART` | | `true`·`false` | Whether it starts with the system |
+| `RESTART` | | `always`·`on-failure`·`never` | Restart policy |
+| `HEALTHCHECK` | | URL/cmd | Health probe (optional) |
+| `VOLUMES` | | `host:cont` | `podman` only: mappings (⚠️ see rules) |
 
-## Parseo en bash (sin dependencias)
+## Parsing in bash (no dependencies)
 
-> 🔧 Parser corregido: la versión anterior tenía una línea de trim rota.
+> 🔧 Fixed parser: the previous version had a broken trim line.
 
 ```bash
 #!/usr/bin/env bash
-# load-manifest.sh — lee un manifiesto KEY=VALUE y exporta associative array
+# load-manifest.sh — read a KEY=VALUE manifest and export an associative array
 set -euo pipefail
 
 load_manifest() {
     local file="$1" key value line
     declare -gA MANIFEST=()
 
-    [[ -f "$file" ]] || { echo "❌ no existe: $file" >&2; return 1; }
+    [[ -f "$file" ]] || { echo "❌ does not exist: $file" >&2; return 1; }
 
     while IFS= read -r line || [[ -n "$line" ]]; do
-        # Saltar comentarios y líneas vacías
+        # Skip comments and empty lines
         [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
 
-        # Debe contener '='
+        # Must contain '='
         [[ "$line" == *=* ]] || continue
 
         key="${line%%=*}"
         value="${line#*=}"
 
-        # Trim de espacios a ambos lados
+        # Trim spaces on both sides
         key="$(printf '%s' "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
         value="$(printf '%s' "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 
-        # Quitar comillas simples o dobles envolventes
+        # Remove surrounding single or double quotes
         value="${value%\"}"; value="${value#\"}"
         value="${value%\'}"; value="${value#\'}"
 
-        # Validar clave
+        # Validate key
         [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
 
         MANIFEST["$key"]="$value"
@@ -108,7 +108,7 @@ load_manifest() {
 }
 ```
 
-## Uso
+## Usage
 
 ```bash
 load_manifest apps/mail/app.conf
@@ -120,78 +120,78 @@ echo "RUNTIME: ${MANIFEST[RUNTIME]:-native}"
 
 ## Runtimes
 
-| Runtime | Overhead | Cuándo usar | Aislamiento |
+| Runtime | Overhead | When to use | Isolation |
 |---|---|---|---|
-| `native` | **0** | Apps propias, ya validadas | Ninguno (proceso del sistema) |
-| `nspawn` | +35–65 MB RAM | La app pide otro userspace | Contenedor systemd con rootfs propio |
-| `podman` | +20–50 MB/contenedor | App de terceros **sólo** OCI | Contenedor OCI |
+| `native` | **0** | In-house apps, already validated | None (system process) |
+| `nspawn` | +35–65 MB RAM | The app requires a different userspace | systemd container with its own rootfs |
+| `podman` | +20–50 MB/container | Third-party app that is **only** OCI | OCI container |
 
-### ⚠️ Reglas de `podman`
+### ⚠️ `podman` rules
 
-1. **Nunca** datos de BD en la capa rw (overlay COW). El COW se pierde al
-   reiniciar y en flash USB castiga las escrituras.
-2. Los datos van a `/data` con **mapeo directo**:
+1. **Never** put DB data on the rw layer (overlay COW). COW is lost on reboot
+   and on USB flash it punishes writes.
+2. Data goes to `/data` with a **direct mapping**:
    ```bash
    VOLUMES=/data/apps/mail:/var/lib/mail:Z
    ```
-3. Podman **sólo** se instala si el manifiesto declara `RUNTIME=podman`.
-4. En flash USB, un contenedor con COW rw es inviable: usar `--read-only` +
-   volúmenes.
+3. Podman is installed **only** if the manifest declares `RUNTIME=podman`.
+4. On USB flash, a container with a rw COW layer is unviable: use `--read-only` +
+   volumes.
 
-## Sistemas de bases de datos soportados
+## Supported database systems
 
 ### `DATABASE=embedded` (default)
 
-| Componente | Descripción |
+| Component | Description |
 |---|---|
-| Motor | SQLite integrada o motor embebido sin servicio separado |
-| Uso | Aplicaciones ligeras, sin servicio DB separado |
-| Ejemplo | `DATA_DIR=/data/app/db`, `sqlite3 /data/app/db/app.db` |
-| Autonomía | ✅ los datos viajan dentro del appliance |
-| RAM | +0 MB (usando SQLite nativo) |
+| Engine | Integrated SQLite or an embedded engine with no separate service |
+| Use | Lightweight applications, no separate DB service |
+| Example | `DATA_DIR=/data/app/db`, `sqlite3 /data/app/db/app.db` |
+| Autonomy | ✅ data travels inside the appliance |
+| RAM | +0 MB (using native SQLite) |
 
 ### `DATABASE=external`
 
-| Componente | Descripción |
+| Component | Description |
 |---|---|
-| Motor | PostgreSQL, MySQL, MariaDB, o cualquier servidor DB externo |
-| Requisito | `DATABASE_URL` debe contener la URL de conexión |
-| Red | Requiere LAN o acceso al server DB |
-| Autonomía | ❌ depende de su server externo |
+| Engine | PostgreSQL, MySQL, MariaDB, or any external DB server |
+| Requirement | `DATABASE_URL` must contain the connection URL |
+| Network | Requires LAN or access to the DB server |
+| Autonomy | ❌ depends on its external server |
 | RAM | +30–80 MB |
 | URL example | `postgresql://user:pass@db.host:5432/dbname?sslmode=disable` |
 
 ### `DATABASE=none`
 
-| Componente | Descripción |
+| Component | Description |
 |---|---|
-| Motor | Ninguno. La app no usa base de datos local. |
-| Uso | Frontend-only, APIs sin BD propia, gestores de archivos |
-| Autonomía | ✅ total, sin dependencias de BD |
+| Engine | None. The app does not use a local database. |
+| Use | Frontend-only, APIs without their own DB, file managers |
+| Autonomy | ✅ total, no DB dependencies |
 
-## Flujo de instalación de un payload
+## Payload installation flow
 
 ```text
 ADMIN (host)                          APPLIANCE
 ───────────                           ─────────
-1. build.sh crea el appliance         ──────────
+1. build.sh creates the appliance     ──────────
 2. payload install app.conf           1. ssh root@appliance
-   ├─ valida el manifiesto            2. payload-install app.conf
-   ├─ materializa SOURCE@SOURCE_REF ─→ /data/apps/<slug>/src
-   ├─ instala runtime si hace falta   3. systemctl enable --now app-<slug>.service
-   ├─ prepara BD (embedded/external)   4. Verificar healthcheck
-   └─ escribe la unit systemd          5. Disfrutar la app
+   ├─ validates the manifest          2. payload-install app.conf
+   ├─ materializes SOURCE@SOURCE_REF ─→ /data/apps/<slug>/src
+   ├─ installs runtime if needed      3. systemctl enable --now app-<slug>.service
+   ├─ prepares DB (embedded/external) 4. Verify healthcheck
+   └─ writes the systemd unit         5. Enjoy the app
 3. systemctl enable --now app-<slug>.service
 ```
 
-La materialización del código ocurre **en el appliance**, desde el repo de la
-app, en el momento de la instalación. La ISO no lleva el código.
+Code materialization happens **on the appliance**, from the app's repo, at
+install time. The ISO does not carry the code.
 
-## Unidades systemd del payload (ejemplo genérico)
+## Payload systemd units (generic example)
 
 ```ini
 [Unit]
-Description=Sistema autoalojado
+Description=Self-hosted system
 RequiresMountsFor=/data
 After=network.target
 
@@ -199,7 +199,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/opt/<app-slug>
 Environment=NODE_ENV=production
-Environment=DATABASE_URL=<URL-de-conexión>
+Environment=DATABASE_URL=<connection-URL>
 Restart=always
 RestartSec=5
 
@@ -207,34 +207,35 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-> ⚠️ `WorkingDirectory=/opt/<app-slug>` (symlink sin espacios) — nunca la ruta
-> original con comillas: systemd no las quita y el servicio no arranca.
+> ⚠️ `WorkingDirectory=/opt/<app-slug>` (symlink without spaces) — never the
+> original path with quotes: systemd does not strip them and the service will
+> not start.
 
-## Repositorio de payloads en este proyecto
+## Payload repository in this project
 
 ```text
 apps/
 └── mail-system/
-    └── app.conf        # SOLO el manifiesto — el código NO está aquí
+    └── app.conf        # ONLY the manifest — the code is NOT here
 ```
 
-## Validación
+## Validation
 
-| Check | Comando | Esperado |
+| Check | Command | Expected |
 |---|---|---|
-| Manifiesto válido | `load-manifest.sh app.conf` | `MANIFEST[NAME]` set |
-| SOURCE es URL válida | `curl -I "${MANIFEST[SOURCE]}"` | 200 OK |
-| RUNTIME soportado | `${MANIFEST[RUNTIME]:-native}` in `native nspawn podman` | válido |
-| DATA_DIR bajo /data | `${MANIFEST[DATA_DIR]}` empieza con `/data` | true |
-| Healthcheck define | `${MANIFEST[HEALTHCHECK]}` no vacío | URL o cmd |
+| Valid manifest | `load-manifest.sh app.conf` | `MANIFEST[NAME]` set |
+| SOURCE is a valid URL | `curl -I "${MANIFEST[SOURCE]}"` | 200 OK |
+| Supported RUNTIME | `${MANIFEST[RUNTIME]:-native}` in `native nspawn podman` | valid |
+| DATA_DIR under /data | `${MANIFEST[DATA_DIR]}` starts with `/data` | true |
+| Healthcheck defined | `${MANIFEST[HEALTHCHECK]}` not empty | URL or cmd |
 
-## Handoff a otras skills del grupo
+## Handoff to other skills in the group
 
-| Si tocas... | Ve a |
+| If you touch... | Go to |
 |---|---|
-| manifiesto + runtime + BD | `arch-frozen-repo` |
-| materialización payload | `arch-appliance-img` |
-| runtime podman/nspawn | `arch-qemu-validation` |
-| integración desktop (L0-L6) | `arch-desktop-layers` |
-| perfil + packages | `arch-iso-builder` |
-| validación hardware | `arch-hardware-handler` |
+| frozen repo + pacman config | `arch-frozen-repo` |
+| payload materialization | `arch-appliance-img` |
+| podman/nspawn runtime | `arch-qemu-validation` |
+| desktop integration (L0-L6) | `arch-desktop-layers` |
+| profile + packages | `arch-iso-builder` |
+| hardware validation | `arch-hardware-handler` |

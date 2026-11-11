@@ -3,188 +3,188 @@ name: arch-archlinux-pitfalls
 description: 'Living catalog of real errors encountered while building Arch Linux ISOs and appliances. Serves as the empirical memory of the skill group. Consulted before every build to avoid repeating known failures (community 404, DisableDownloadTimeout, error -71, SDDM hangs, etc.).'
 ---
 
-# arch-archlinux-pitfalls — Catálogo de Errores Reales
+# arch-archlinux-pitfalls — Real-World Error Catalog
 
-> **Este es el registro empírico** de los errores encontrados durante el
-> desarrollo de distribuciones Arch Linux basadas en el skill `arch-distro-design`.
-> Cualquier agente o usuario que construya una ISO/appliance Arch debe revisar
-> esto antes de iniciar el build.
+> **This is the empirical record** of the errors found while developing Arch
+> Linux distributions based on the `arch-distro-design` skill. Any agent or user
+> building an Arch ISO/appliance must review this before starting the build.
 
-## Errores de diseño y Brief no completado
+## Design errors and an incomplete Brief
 
-### 1. Brief no completado
+### 1. Incomplete Brief
 
-**Contexto:** El skill `arch-distro-design` establece que **siempre** deben
-completarse las 7 categorías obligatorias antes de empezar a diseñar. Cuando se
-omite este paso, el artefacto final no cumple el objetivo real del usuario.
+**Context:** The `arch-distro-design` skill establishes that the 7 mandatory
+categories must **always** be completed before starting the design. When this
+step is skipped, the final artifact does not meet the user's real objective.
 
-**Causa:** El agente o usuario comienza el diseño sin antes responder las
-preguntas obligatorias del `Brief`:
-- Objetivo, Formato de salida, Hardware, Red, Apps/Payloads, Inmutabilidad,
-  Política de updates.
+**Cause:** The agent or user starts the design without first answering the
+mandatory `Brief` questions:
+- Objective, Output format, Hardware, Network, Apps/Payloads, Immutability,
+  Update policy.
 
-**Solución:** **NUNCA** iniciar el diseño de una ISO o appliance sin antes
-completar el `Brief`. Si el `Brief` no está completo, detener el proceso y pedir
-las 7 categorías.
+**Solution:** **NEVER** start designing an ISO or appliance without first
+completing the `Brief`. If the `Brief` is incomplete, stop the process and ask
+for the 7 categories.
 
-**Regla nueva:**
+**New rule:**
 
-| Check | Requisito |
+| Check | Requirement |
 |---|---|
-| `brief_completado` | Las 7 categorías deben estar firmadas en `docs/09` |
-| `objetivo_definido` | El objetivo del sistema debe estar claro |
-| `formato_salida` | ISO live, .img persistente, o ambos |
-| `hardware_identificado` | UEFI/BIOS/USB/SSD/NVMe |
-| `red_politica` | Política de red decidida (por defecto `inactive`) |
-| `apps_payloads` | Apps y payloads declaradas (nunca vendorizadas) |
-| `politica_updates` | Política de updates definida |
+| `brief_completed` | All 7 categories must be signed off in `docs/09` |
+| `objective_defined` | The system objective must be clear |
+| `output_format` | Live ISO, persistent .img, or both |
+| `hardware_identified` | UEFI/BIOS/USB/SSD/NVMe |
+| `network_policy` | Network policy decided (default `inactive`) |
+| `apps_payloads` | Apps and payloads declared (never vendored) |
+| `update_policy` | Update policy defined |
 
 ---
 
-## Errores de perfil y `mkarchiso`
+## Profile and `mkarchiso` errors
 
 ### 2. `realpath: '': No such file or directory`
 
-**Contexto:** `mkarchiso` aborta en la primera línea útil con este error, que no
-menciona qué ruta o variable es la culpable.
+**Context:** `mkarchiso` aborts on the first useful line with this error, which
+does not mention which path or variable is to blame.
 
-**Causa:** `mkarchiso` resuelve con `realpath` tres rutas del perfil
-(`packages`, `bootstrap_packages`, `pacman_conf`). Si alguna está vacía:
-- `realpath -- ""` → error inmediato
-- `bootstrap_packages.x86_64` **debe existir** (aunque vacío)
+**Cause:** `mkarchiso` resolves three profile paths with `realpath`
+(`packages`, `bootstrap_packages`, `pacman_conf`). If any of them is empty:
+- `realpath -- ""` → immediate error
+- `bootstrap_packages.x86_64` **must exist** (even if empty)
 
-**Solución:**
-- Todas las rutas en `profiledef.sh` deben ser **relativas al perfil**
-- Crear `bootstrap_packages.x86_64` aunque esté vacío (`touch`)
-- Nunca dejar variables sin definir
+**Solution:**
+- All paths in `profiledef.sh` must be **relative to the profile**
+- Create `bootstrap_packages.x86_64` even if empty (`touch`)
+- Never leave variables undefined
 
-### 3. Los boot modes de archiso 91-1
+### 3. archiso 91-1 boot modes
 
-**Contexto:** `uefi.systemd-boot.esp` y `uefi.systemd-boot.eltorito` →
+**Context:** `uefi.systemd-boot.esp` and `uefi.systemd-boot.eltorito` →
 `is not a valid boot mode!`. `bios.syslinux.mbr` → "deprecated".
 
-**Causa:** Aquellos sufijos (`.esp`, `.mbr`, `.eltorito`) son **funciones
-internas** de archiso, no valores de `bootmodes`.
+**Cause:** Those suffixes (`.esp`, `.mbr`, `.eltorito`) are **internal
+functions** of archiso, not `bootmodes` values.
 
-**Sólo son válidos:**
+**Only these are valid:**
 
-| Boot mode | Para qué |
+| Boot mode | Purpose |
 |---|---|
-| `bios.syslinux` | BIOS legacy + syslinux |
-| `uefi.grub` | UEFI con GRUB |
-| `uefi.systemd-boot` | UEFI con systemd-boot |
+| `bios.syslinux` | Legacy BIOS + syslinux |
+| `uefi.grub` | UEFI with GRUB |
+| `uefi.systemd-boot` | UEFI with systemd-boot |
 
-**Regla:** Nunca escribir sufijos `.esp` / `.mbr` / `.eltorito` a mano.
+**Rule:** Never write `.esp` / `.mbr` / `.eltorito` suffixes by hand.
 
-### 4. `community.db` → **404** en todos los mirrors 📏 2026-11-09
+### 4. `community.db` → **404** on every mirror 📏 2026-11-09
 
-**Contexto:** El build moría con `error: failed retrieving file 'community.db'
+**Context:** The build died with `error: failed retrieving file 'community.db'
 from geo.mirror.pkgbuild.com : 404`.
 
-**Causa:** **Arch fusionó el repo `community` dentro de `extra`**. `community`
-ya no existe.
+**Cause:** **Arch merged the `community` repo into `extra`**. `community` no
+longer exists.
 
-**Solución:** `pacman.conf` del perfil con `[core]` + `[extra]` únicamente.
+**Solution:** Profile `pacman.conf` with `[core]` + `[extra]` only.
 
-**Regla:** En una distro rolling, **nunca** des por supuesto que un repo sigue
-existiendo. Verifica contra la API/mirror antes de escribir el `pacman.conf`.
+**Rule:** On a rolling distro, **never** assume a repo still exists. Verify
+against the API/mirror before writing `pacman.conf`.
 
-### 5. El host de build es Manjaro: contamina el ISO 📏
+### 5. The build host is Manjaro: it contaminates the ISO 📏
 
-**Contexto:** `pacman.conf` con `Include = /etc/pacman.d/mirrorlist` descarga
-paquetes de **distribución no-Arch**.
+**Context:** A `pacman.conf` with `Include = /etc/pacman.d/mirrorlist` downloads
+packages from a **non-Arch distribution**.
 
-**Causa:** En distribuciones no-Arch, `/etc/pacman.d/mirrorlist` apunta a sus
-propios repos. Con `Include`, el ISO "funciona" pero no es Arch Linux.
+**Cause:** On non-Arch distributions, `/etc/pacman.d/mirrorlist` points to their
+own repos. With `Include`, the ISO "works" but is not Arch Linux.
 
-**Solución:** `pacman.conf` del perfil con `Server =` **explícito** y mirrors de
-Arch. Overlay de `airootfs/etc/pacman.conf` para que el live tampoco herede el
-config del paquete `pacman`.
+**Solution:** Profile `pacman.conf` with **explicit** `Server =` entries and Arch
+mirrors. Overlay `airootfs/etc/pacman.conf` so the live system does not inherit
+the `pacman` package's config either.
 
-**Regla:** En un host no-Arch, el `pacman.conf` del perfil **nunca** usa `Include`.
+**Rule:** On a non-Arch host, the profile `pacman.conf` **never** uses `Include`.
 
-### 6. Mirrors geolocalizados / lentos 📏
+### 6. Geolocated / slow mirrors 📏
 
-**Contexto:** `Operation too slow. Less than 1 bytes/sec transferred the last 10
-seconds` y el build abortaba.
+**Context:** `Operation too slow. Less than 1 bytes/sec transferred the last 10
+seconds` and the build aborted.
 
-**Causa:** El mirror "geo" resolvió a un nodo lento desde esta red.
+**Cause:** The "geo" mirror resolved to a slow node from this network.
 
-**Solución:** Tres `Server =` por repo (fallback automático) con el más rápido
-primero, y `XferCommand` con curl.
+**Solution:** Three `Server =` entries per repo (automatic fallback) with the
+fastest first, and `XferCommand` with curl.
 
-**Regla:** Mide el throughput **antes** de construir una ISO. No te fíes del
-mirror "por defecto".
+**Rule:** Measure throughput **before** building an ISO. Do not trust the
+"default" mirror.
 
-### 7. `DisableDownloadTimeout` no existe en `pacman.conf` (pacman 7)
+### 7. `DisableDownloadTimeout` does not exist in `pacman.conf` (pacman 7)
 
-**Contexto:**
+**Context:**
 
 ```text
 warning: config file .../pacman.conf, line 32: directive 'DisableDownloadTimeout' in section 'options' not recognized.
 ```
 
-**Causa:** En pacman 7 es **sólo un flag de CLI**
-(`--disable-download-timeout`); el parser de `pacman.conf` no lo expone como
-directiva.
+**Cause:** In pacman 7 it is **only a CLI flag**
+(`--disable-download-timeout`); the `pacman.conf` parser does not expose it as a
+directive.
 
-**Solución:** La equivalente de configuración es `XferCommand` con curl:
+**Solution:** The configuration equivalent is `XferCommand` with curl:
 
 ```ini
 XferCommand = /usr/bin/curl -sSfL --retry 5 --retry-delay 3 --speed-time 120 --speed-limit 10 -o %o %u
 ```
 
-`--speed-time 120 --speed-limit 10` aborta sólo si baja de 10 B/s durante 120 s.
+`--speed-time 120 --speed-limit 10` aborts only if the speed drops below 10 B/s
+for 120 s.
 
-**Trampa extra:** `curl -C -` (resume) **falla** si el fichero destino no
-existe. No usar `-C -` con `XferCommand`.
+**Extra trap:** `curl -C -` (resume) **fails** if the destination file does not
+exist. Do not use `-C -` with `XferCommand`.
 
-**Regla:** Ante `directive ... not recognized`, comprueba si la opción es de CLI
-(`pacman --help`) antes de buscar un sustituto.
+**Rule:** When you see `directive ... not recognized`, check whether the option
+is a CLI option (`pacman --help`) before looking for a replacement.
 
-### 8. `pacman --root` NO reubica `GPGDir` 📏
+### 8. `pacman --root` does NOT relocate `GPGDir` 📏
 
-**Contexto:** Preocupación por `pacstrap -G` que evita copiar el keyring al
-target, así que `SigLevel = Required` no encontraría claves.
+**Context:** Concern about `pacstrap -G`, which avoids copying the keyring to the
+target, so `SigLevel = Required` would not find keys.
 
-**Causa probada empíricamente:**
+**Cause proven empirically:**
 
-| Escenario | Resultado |
+| Scenario | Result |
 |---|---|
-| `pacman --root R -U pkg` (keyring vacío en R) | ✅ **verifica** → usa `/etc/pacman.d/gnupg` del **host** |
-| `pacman --root --gpgdir R/etc/pacman.d/gnupg -U pkg` (vacío) | ❌ `required key missing from keyring` |
+| `pacman --root R -U pkg` (empty keyring in R) | ✅ **verifies** → uses the **host's** `/etc/pacman.d/gnupg` |
+| `pacman --root --gpgdir R/etc/pacman.d/gnupg -U pkg` (empty) | ❌ `required key missing from keyring` |
 
-`pacman --root` sólo reubica `DBPath`, `CacheDir`, `LogFile` y `RootDir`;
-`GPGDir` sigue apuntando al host.
+`pacman --root` only relocates `DBPath`, `CacheDir`, `LogFile`, and `RootDir`;
+`GPGDir` still points to the host.
 
-**Solución:** El host ya tiene `archlinux-keyring` instalado. El target queda
-con keyring vacío a propósito → `pacman-init.service` lo inicializa en el
-primer arranque.
+**Solution:** The host already has `archlinux-keyring` installed. The target is
+left with an empty keyring on purpose → `pacman-init.service` initializes it on
+first boot.
 
-**Regla:** El host de build necesita `archlinux-keyring` instalado y con las
-claves maestras de Arch importadas.
+**Rule:** The build host needs `archlinux-keyring` installed with Arch's master
+keys imported.
 
-### 9. `mkinitcpio` + `mkinitcpio-archiso` son obligatorios
+### 9. `mkinitcpio` + `mkinitcpio-archiso` are mandatory
 
-**Contexto:** Sin `mkinitcpio-archiso` el initramfs no lleva el hook `archiso`
-→ kernel panic al montar el squashfs.
+**Context:** Without `mkinitcpio-archiso`, the initramfs does not include the
+`archiso` hook → kernel panic when mounting the squashfs.
 
-**Causa:** `README.profile.rst` los marca como *mandatory*.
+**Cause:** `README.profile.rst` marks them as *mandatory*.
 
-**Solución:** Ambos paquetes en `packages.x86_64` + el fichero de hooks en el
-overlay (`airootfs/etc/mkinitcpio.conf.d/archiso.conf`).
+**Solution:** Both packages in `packages.x86_64` + the hooks file in the overlay
+(`airootfs/etc/mkinitcpio.conf.d/archiso.conf`).
 
-**Regla:** Sin `mkinitcpio-archiso` no hay live. No es opcional.
+**Rule:** Without `mkinitcpio-archiso` there is no live system. It is not optional.
 
-### 10. El overlay `airootfs` no preserva permisos ni owners
+### 10. The `airootfs` overlay does not preserve permissions or owners
 
-**Contexto:** `root/.xinitrc` llega al target con modo **644** → `startx` no lo
-puede ejecutar.
+**Context:** `root/.xinitrc` arrives at the target with mode **644** → `startx`
+cannot execute it.
 
-**Causa:** `mkarchiso` copia con `cp -af --no-preserve=ownership,mode` y todo
-queda como root:root, 644/755.
+**Cause:** `mkarchiso` copies with `cp -af --no-preserve=ownership,mode` and
+everything ends up as root:root, 644/755.
 
-**Solución:** `file_permissions` en `profiledef.sh`:
+**Solution:** `file_permissions` in `profiledef.sh`:
 
 ```bash
 file_permissions=(
@@ -194,94 +194,94 @@ file_permissions=(
 )
 ```
 
-**Regla:** Todo ejecutable del overlay va en `file_permissions`.
+**Rule:** Every executable in the overlay goes in `file_permissions`.
 
-### 11. `customize_airootfs.sh` está deprecado
+### 11. `customize_airootfs.sh` is deprecated
 
-**Contexto:** El mecanismo antiguo de post-instalación ya no es el camino oficial.
+**Context:** The old post-install mechanism is no longer the official path.
 
-**Causa:** El CHANGELOG de archiso 91-1 dice: *"Use pacman hooks for things
-previously done in `customize_airootfs.sh`"* y *"Remove `customize_airootfs.sh`
+**Cause:** The archiso 91-1 CHANGELOG says: *"Use pacman hooks for things
+previously done in `customize_airootfs.sh`"* and *"Remove `customize_airootfs.sh`
 from the vendored profiles*".
 
-**Solución:** El overlay (`airootfs/`) + `file_permissions` cubren lo necesario;
-para el resto, hooks de pacman en `airootfs/etc/pacman.d/hooks/`.
+**Solution:** The overlay (`airootfs/`) + `file_permissions` cover what is
+needed; for the rest, pacman hooks in `airootfs/etc/pacman.d/hooks/`.
 
-**Regla:** No escribir `customize_airootfs.sh` en perfiles nuevos.
+**Rule:** Do not write `customize_airootfs.sh` in new profiles.
 
-### 12. `/etc/shadow` del overlay sobrevive al paquete `filesystem`
+### 12. The overlay's `/etc/shadow` survives the `filesystem` package
 
-**Contexto:** Preocupación: si `filesystem` (que trae `/etc/shadow` como
-*conffile*) se instalase encima, se perdería la password de root del live.
+**Context:** Concern: if `filesystem` (which ships `/etc/shadow` as a
+*conffile*) were installed on top, the live root password would be lost.
 
-**Causa verificada:** El paquete `filesystem` declara `backup = etc/shadow` y
-`backup = etc/passwd`, y sólo trae la entrada de `root`. Pacman trata los
-conffiles modificados: **conserva** el existente y escribe un `.pacnew`, que
-archiso borra después (`_cleanup_pacstrap_dir`).
+**Verified cause:** The `filesystem` package declares `backup = etc/shadow` and
+`backup = etc/passwd`, and only ships the `root` entry. Pacman handles modified
+conffiles: it **keeps** the existing one and writes a `.pacnew`, which archiso
+then deletes (`_cleanup_pacstrap_dir`).
 
-**Solución:** Overlay con `/etc/shadow` (hash SHA-512) y `file_permissions`
+**Solution:** Overlay with `/etc/shadow` (SHA-512 hash) and `file_permissions`
 `0:0:400`.
 
-**Regla:** Los conffiles del overlay se conservan; pero deben ser **completos**.
+**Rule:** Overlay conffiles are preserved; but they must be **complete**.
 
-### 13. `mkarchiso` exige que `-w` y `-o` ya existan
+### 13. `mkarchiso` requires `-w` and `-o` to already exist
 
-**Contexto:** `realpath -- "$work_dir"` y `realpath -- "$out_dir"` abortan si
-las rutas no existen.
+**Context:** `realpath -- "$work_dir"` and `realpath -- "$out_dir"` abort if the
+paths do not exist.
 
-**Solución:** `mkdir -p` antes de invocar a `mkarchiso`.
+**Solution:** `mkdir -p` before invoking `mkarchiso`.
 
-### 14. Lecciones heredadas del ciclo Lubuntu perdido 📏
+### 14. Lessons inherited from the lost Lubuntu cycle 📏
 
-| Lección | Aplicación |
+| Lesson | Application |
 |---|---|
-| Nunca `--bind=/usr` del host dentro de un rootfs destino | Target con `pacstrap` limpio |
-| GRUB necesita `root=UUID=` (virtio = `/dev/vda`) | `build.sh` genera el UUID |
-| El **último** `console=` recibe `/dev/console` | `console=tty0 console=ttyS0,115200n8` (serie al final) |
-| Sintaxis larga de serial en GRUB 2.12 | `serial --unit=0 --speed=115200 --word=8 --parity=no --stop=1` |
-| Nunca `mkfs`/`parted` sin revisar el disco destino | `build.sh` con doble confirmación y guardas |
-| Siempre `e2fsck` antes de `resize2fs` | Script de resize en docs/04 |
-| Apagar QEMU con gracia (`system_powerdown`) | Script de validación QEMU con apagado limpio |
-| SDDM se colgaba → sin display manager | Openbox + tint2 + autologin en tty1 |
-| `WorkingDirectory=` de systemd **no** quita comillas | Rutas sin espacios (symlink) |
-| Prisma CLI vive en `node_modules/.bin/prisma` | Se documenta en el manifiesto |
-| `sslmode` explícito en staging/producción | `DATABASE_URL=...&sslmode=disable` |
+| Never `--bind=/usr` from the host inside a target rootfs | Clean `pacstrap` target |
+| GRUB needs `root=UUID=` (virtio = `/dev/vda`) | `build.sh` generates the UUID |
+| The **last** `console=` receives `/dev/console` | `console=tty0 console=ttyS0,115200n8` (serial last) |
+| Long serial syntax in GRUB 2.12 | `serial --unit=0 --speed=115200 --word=8 --parity=no --stop=1` |
+| Never `mkfs`/`parted` without reviewing the target disk | `build.sh` with double confirmation and guards |
+| Always `e2fsck` before `resize2fs` | Resize script in docs/04 |
+| Shut QEMU down gracefully (`system_powerdown`) | QEMU validation script with clean shutdown |
+| SDDM hung → no display manager | Openbox + tint2 + autologin on tty1 |
+| systemd `WorkingDirectory=` does **not** strip quotes | Paths without spaces (symlink) |
+| Prisma CLI lives in `node_modules/.bin/prisma` | Documented in the manifest |
+| Explicit `sslmode` in staging/production | `DATABASE_URL=...&sslmode=disable` |
 
-### 15. Política de red y updates
+### 15. Network and update policy
 
-**Regla:**
-- Red **desactivada** por defecto: `systemctl is-active systemd-networkd` → `inactive`
-- Actualizaciones: `pacman -Syu` con networkd temporalmente arriba
-- Log de versiones: `versions.txt` commiteado tras cada build
-- Solo `appliance-update.service` escribe en root
+**Rule:**
+- Network **disabled** by default: `systemctl is-active systemd-networkd` → `inactive`
+- Updates: `pacman -Syu` with networkd temporarily up
+- Version log: `versions.txt` committed after every build
+- Only `appliance-update.service` writes to root
 
-### 16. Display manager = colgado
+### 16. Display manager = hang
 
-**Contexto:** SDDM se colgaba y el sistema quedaba inutilizable.
+**Context:** SDDM hung and the system became unusable.
 
-**Regla:** **Ningún display manager.** La sesión gráfica la levanta `startx`
-desde un autologin de `getty@tty1`.
+**Rule:** **No display manager.** The graphical session is started by `startx`
+from a `getty@tty1` autologin.
 
-### 17. Errores derivados de Brief incompleto
+### 17. Errors derived from an incomplete Brief
 
-| Error | Síntoma | Consecuencia |
+| Error | Symptom | Consequence |
 |---|---|---|
-| Objetivo no definido | El sistema cumple técnicamente pero no sirve | El usuario no obtiene lo que esperaba |
-| Formato de salida desconocido | ISO cuando el usuario quería .img | Desperdicio de tiempo y espacio |
-| Hardware no validado | `error -71`, partición sobre disco equivocado | Pérdida de datos |
-| Red no definida | El admin no sabe cómo actualizar | Falta o exceso de conectividad |
-| Apps/Payloads no declaradas | El payload no instala o sobrescribe | El sistema no funciona como esperado |
-| Política de updates sin definir | El admin no puede actualizar | El sistema se vuelve obsoleto |
+| Objective not defined | The system is technically valid but useless | The user does not get what they expected |
+| Unknown output format | ISO when the user wanted a .img | Wasted time and space |
+| Hardware not validated | `error -71`, partition on the wrong disk | Data loss |
+| Network not defined | The admin does not know how to update | Too little or too much connectivity |
+| Apps/Payloads not declared | The payload does not install or overwrites things | The system does not work as expected |
+| Update policy undefined | The admin cannot update | The system becomes obsolete |
 
-### 18. Metodología corregida (con Brief obligatorio)
+### 18. Corrected methodology (with mandatory Brief)
 
-1. **Aplicar Brief obligatorio** — 7 categorías antes de escribir una línea.
-2. **Diseñar con decisiones tomadas** — no adivinar.
-3. **Validar empíricamente** — medir, no suponer.
-4. **Documentar el error** — cada fallo real va a esta tabla.
-5. **Construir el artefacto** — el diseño ya está completo.
-6. **Verificar con QEMU** — `arch-qemu-validation` antes de hardware real.
-7. **Validar hardware** — `arch-hardware-handler` si toca escribir en disco.
+1. **Apply the mandatory Brief** — 7 categories before writing a line.
+2. **Design with decisions made** — do not guess.
+3. **Validate empirically** — measure, do not assume.
+4. **Document the error** — every real failure goes into this table.
+5. **Build the artifact** — the design is already complete.
+6. **Verify with QEMU** — `arch-qemu-validation` before real hardware.
+7. **Validate hardware** — `arch-hardware-handler` if writing to disk is involved.
 
-**Regla:** Un diseño que no complete el **Brief obligatorio** **no debe**
-avanzar a la fase de construcción.
+**Rule:** A design that does not complete the **mandatory Brief** **must not**
+advance to the construction phase.

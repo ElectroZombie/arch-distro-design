@@ -5,92 +5,92 @@ description: 'Build Arch Linux live ISOs with archiso. Handles profile configura
 
 # Arch ISO Builder — General Purpose
 
-Skill para construir ISOs live de Arch Linux usando `archiso 91-1`. Sirve para
-**cualquier** distribución basada en Arch. Decide la estructura del perfil, qué
-paquetes van en el live vs el repo congelado, y lanza `mkarchiso`.
+Skill for building Arch Linux live ISOs using `archiso 91-1`. It works for
+**any** Arch-based distribution. It decides the profile structure, which
+packages go in the live system versus the frozen repo, and runs `mkarchiso`.
 
-## ⚠️ OBLIGATORIO: Brief previo
+## ⚠️ MANDATORY: prior Brief
 
-> **Directiva desde `arch-distro-design`:** Esta skill **NUNCA** debe invocarse
-> sin antes haber completado el `Brief` de diseño.
+> **Directive from `arch-distro-design`:** This skill must **NEVER** be invoked
+> without first completing the design `Brief`.
 
-| Categoría | Qué define para esta skill |
+| Category | What it defines for this skill |
 |---|---|
-| **Objetivo** | Si es ISO live, .img persistente, o ambos. |
-| **Formato de salida** | Determina si construimos ISO, .img, o ambos. |
-| **Hardware objetivo** | x86_64 UEFI, BIOS, disco USB, HDD, SSD, NVMe. |
-| **Red** | 100% local, LAN DHCP, internet esperado, o completamente offline. |
-| **Apps / Payloads** | Qué aplicaciones se incluyen, runtimes, BD. |
-| **Inmutabilidad** | Root squashfs ro, rw con regla, o overlay? |
-| **Política de updates** | Cómo y cuándo se actualiza. |
+| **Objective** | Whether it is a live ISO, a persistent .img, or both. |
+| **Output format** | Determines whether we build an ISO, a .img, or both. |
+| **Target hardware** | x86_64 UEFI, BIOS, USB disk, HDD, SSD, NVMe. |
+| **Network** | 100% local, LAN DHCP, internet expected, or completely offline. |
+| **Apps / Payloads** | Which applications are included, runtimes, DB. |
+| **Immutability** | Root squashfs ro, rw with a rule, or overlay? |
+| **Update policy** | How and when it updates. |
 
-> **Si el `Brief` no está completado, detener la invocación y pedir las 7
-> categorías obligatorias.**
+> **If the `Brief` is not complete, stop the invocation and ask for the 7
+> mandatory categories.**
 
-## Cuándo usar esta skill
+## When to use this skill
 
-- El usuario quiere crear una ISO live de Arch con un propósito específico.
-- El `arch-distro-design` ya tomó las decisiones de diseño y las transmitió.
-- Se necesita un perfil archiso válido (boot modes, variables, overlay).
-- Se quiere validar que el perfil pasa `mkarchiso --validate` antes de construir.
-- Se necesita inyectar overlay `airootfs/` personalizado.
+- The user wants to create an Arch live ISO for a specific purpose.
+- `arch-distro-design` has already made the design decisions and passed them on.
+- A valid archiso profile is needed (boot modes, variables, overlay).
+- The profile must pass `mkarchiso --validate` before building.
+- A custom `airootfs/` overlay must be injected.
 
-## Artefactos producidos
+## Produced artifacts
 
-| Salida | Descripción |
+| Output | Description |
 |---|---|
-| `out/*.iso` | ISO bootable (BIOS + UEFI) con rootfs squashfs |
-| `out/SHA256SUMS` | Checksums de la ISO (para versionado) |
-| `builder/arch-profile/` | Perfil listo para `mkarchiso` |
+| `out/*.iso` | Bootable ISO (BIOS + UEFI) with a squashfs rootfs |
+| `out/SHA256SUMS` | ISO checksums (for versioning) |
+| `builder/arch-profile/` | Profile ready for `mkarchiso` |
 
-## Flujo de trabajo obligatorio
+## Mandatory workflow
 
-### 1. Recibir el `Brief` de `arch-distro-design`
+### 1. Receive the `Brief` from `arch-distro-design`
 
-El `arch-distro-design` debe haber definido ya las 7 categorías.
+`arch-distro-design` must have already defined the 7 categories.
 
-### 2. Definir perfil (`profiledef.sh`)
+### 2. Define the profile (`profiledef.sh`)
 
-Variables críticas que **siempre** deben declararse:
+Critical variables that must **always** be declared:
 
 ```bash
 iso_name="distro-name"
 iso_label="LABEL"
 iso_publisher="publisher"
-iso_application="Descripción"
-install_dir="arch"          # relativo, máximo 30 chars [a-z0-9]
-buildmodes=('iso')         # válidos: bios.syslinux, uefi.systemd-boot
-bootmodes=('bios.syslinux' 'uefi.systemd-boot') # SOLO estos 3 en archiso 91-1
+iso_application="Description"
+install_dir="arch"          # relative, max 30 chars [a-z0-9]
+buildmodes=('iso')         # valid: bios.syslinux, uefi.systemd-boot
+bootmodes=('bios.syslinux' 'uefi.systemd-boot') # ONLY these 3 in archiso 91-1
 pacman_conf="pacman.conf"
 packages="packages.x86_64"
-bootstrap_packages="bootstrap_packages.x86_64" # DEBE EXISTIR aunque esté vacío
+bootstrap_packages="bootstrap_packages.x86_64" # MUST EXIST even if empty
 airootfs_image_type="squashfs"
 kernel_params="console=tty0 console=ttyS0,115200n8"
 ```
 
-### 3. Lista de paquetes (`packages.x86_64`)
+### 3. Package list (`packages.x86_64`)
 
-| Categoría | Paquetes (ejemplos — seleccionar según objetivo del Brief) |
+| Category | Packages (examples — choose according to the Brief's objective) |
 |---|---|
-| **base del sistema** | `base`, `linux`, `linux-firmware`, `grub`, `efibootmgr` |
-| **archiso obligatorios** | `mkinitcpio`, `mkinitcpio-archiso`, `syslinux` |
-| **herramientas del builder** | `e2fsprogs`, `dosfstools`, `parted`, `arch-install-scripts` |
-| **acceso y mantenimiento** | `openssh`, `sudo`, `tmux`, `curl`, `rsync`, `wget`, `htop`, `nano`, `vim`, `less`, `usbutils`, `pciutils`, `nftables` |
-| **gestores de ventana** (elegir) | `openbox`, `i3`, `bspwm`, `awesome`, `herbstluftwm`, `jwm`, `fluxbox`, `windowmaker` |
-| **gestores de archivos** (elegir) | `pcmanfm-qt`, `thunar`, `nemo`, `caja`, `rox-filer`, `spacefm`, `ranger`, `nnn`, `lf` |
-| **entorno de escritorio** (opcional) | `xorg-server`, `xorg-xinit`, `falkon`, `plasma-desktop`, `xfce4`, `gnome`, `mate-desktop` |
-| **visor de imágenes** | `feh`, `sxiv`, `imagemagick` |
-| **editor de texto** | `vim`, `nano`, `neovim`, `leafpad`, `mousepad` |
-| **NUNCA en live** | `base-devel` (~1 GB sin uso), `calamares` (salvo pedido explícito) |
+| **system base** | `base`, `linux`, `linux-firmware`, `grub`, `efibootmgr` |
+| **mandatory archiso** | `mkinitcpio`, `mkinitcpio-archiso`, `syslinux` |
+| **builder tools** | `e2fsprogs`, `dosfstools`, `parted`, `arch-install-scripts` |
+| **access and maintenance** | `openssh`, `sudo`, `tmux`, `curl`, `rsync`, `wget`, `htop`, `nano`, `vim`, `less`, `usbutils`, `pciutils`, `nftables` |
+| **window managers** (choose) | `openbox`, `i3`, `bspwm`, `awesome`, `herbstluftwm`, `jwm`, `fluxbox`, `windowmaker` |
+| **file managers** (choose) | `pcmanfm-qt`, `thunar`, `nemo`, `caja`, `rox-filer`, `spacefm`, `ranger`, `nnn`, `lf` |
+| **desktop environment** (optional) | `xorg-server`, `xorg-xinit`, `falkon`, `plasma-desktop`, `xfce4`, `gnome`, `mate-desktop` |
+| **image viewer** | `feh`, `sxiv`, `imagemagick` |
+| **text editor** | `vim`, `nano`, `neovim`, `leafpad`, `mousepad` |
+| **NEVER in live** | `base-devel` (~1 GB unused), `calamares` (unless explicitly requested) |
 
-> **⚠️ `community` fue fusionado en `extra`** (2026-11-09). Nunca declarar
-> `[community]`: rompe el build con 404.
+> **⚠️ `community` was merged into `extra`** (2026-11-09). Never declare
+> `[community]`: it breaks the build with a 404.
 
-### 4. `pacman.conf` del perfil
+### 4. Profile `pacman.conf`
 
-**⚠️ OBLIGATORIO:** El host de build debe ser siempre **Arch**. No usar
-`Include = /etc/pacman.d/mirrorlist` (el host puede ser Manjaro/otros y
-contaminaría el ISO con paquetes no-Arch).
+**⚠️ MANDATORY:** The build host must always be **Arch**. Do not use
+`Include = /etc/pacman.d/mirrorlist` (the host may be Manjaro or another distro
+and would contaminate the ISO with non-Arch packages).
 
 ```ini
 [options]
@@ -114,47 +114,47 @@ Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch
 Server = https://mirrors.dotsrc.org/archlinux/$repo/os/$arch
 Server = https://mirror.garr.it/archlinux/$repo/os/$arch
 
-# 🔴 Repositorio AUR — NO INCLUIR POR DEFECTO.
-# Los paquetes AUR no están firmados por el keyring de Arch. SigLevel=Optional
-# desactiva la verificación de firma. Solo incluir si el Brief lo autoriza
-# explícitamente y el usuario acepta el riesgo por escrito.
+# 🔴 AUR repository — DO NOT INCLUDE BY DEFAULT.
+# AUR packages are not signed by the Arch keyring. SigLevel=Optional
+# disables signature verification. Only include it if the Brief explicitly
+# authorizes it and the user accepts the risk in writing.
 # [aur]
 # SigLevel = Optional
 # Server = file:///aur-repo
 ```
 
-> **Mínimo 5 servers por repo** (core y extra) para tolerar fallos de mirrors.
+> **Minimum 5 servers per repo** (core and extra) to tolerate mirror failures.
 
-> **XferCommand** (flag CLI, no directiva config): `--speed-time 120 --speed-limit 10`
-> para tolerar mirrors intermitentes.
+> **XferCommand** (CLI flag, not a config directive): `--speed-time 120 --speed-limit 10`
+> to tolerate intermittent mirrors.
 
-### 5. Overlay `airootfs/`
+### 5. `airootfs/` overlay
 
-`mkarchiso` copia `airootfs/.` **con modo 644/755**, por eso `file_permissions`
-en `profiledef.sh` es obligatorio para ejecutables.
+`mkarchiso` copies `airootfs/.` **with mode 644/755**, which is why
+`file_permissions` in `profiledef.sh` is mandatory for executables.
 
-| Fichero | Motivo |
+| File | Reason |
 |---|---|
-| `etc/shadow` | password root del live |
-| `etc/pacman.conf` | override: repo `community` 404 → own config con `[appliance]` |
-| `etc/mkinitcpio.conf.d/archiso.conf` | hooks OBLIGATORIOS: `base udev archiso archiso_loop_mnt memdisk microcode` |
-| `etc/systemd/system/getty@tty1.service.d/autologin.conf` | autologin tty1 |
-| `root/.bash_profile` | `startx` si `tty = /dev/tty1` |
-| `root/.xinitrc` | `tint2 &` + `exec openbox-session` (o el WM que elija el Brief) |
-| `root/.xprofile` | variables de entorno Qt/X |
+| `etc/shadow` | live root password |
+| `etc/pacman.conf` | override: `community` repo 404 → own config with `[appliance]` |
+| `etc/mkinitcpio.conf.d/archiso.conf` | MANDATORY hooks: `base udev archiso archiso_loop_mnt memdisk microcode` |
+| `etc/systemd/system/getty@tty1.service.d/autologin.conf` | tty1 autologin |
+| `root/.bash_profile` | `startx` if `tty = /dev/tty1` |
+| `root/.xinitrc` | `tint2 &` + `exec openbox-session` (or the WM chosen by the Brief) |
+| `root/.xprofile` | Qt/X environment variables |
 
-### 6. Boot modes válidos (archiso 91-1)
+### 6. Valid boot modes (archiso 91-1)
 
-| Boot mode | Arranque | Requiere |
+| Boot mode | Boot | Requires |
 |---|---|---|
-| `bios.syslinux` | BIOS legacy | `syslinux/` con `.cfg` |
+| `bios.syslinux` | Legacy BIOS | `syslinux/` with `.cfg` |
 | `uefi.systemd-boot` | UEFI systemd-boot | `efiboot/loader/loader.conf` + `.conf` |
-| `uefi.grub` | UEFI con GRUB | `grub/` |
+| `uefi.grub` | UEFI with GRUB | `grub/` |
 
-> Los sufijos `.esp` / `.mbr` / `.eltorito` son **internos** de archiso y fallan
-> `return 1`. No usarlos.
+> The `.esp` / `.mbr` / `.eltorito` suffixes are **internal** to archiso and
+> fail with `return 1`. Do not use them.
 
-### 7. Llamada a `mkarchiso`
+### 7. Calling `mkarchiso`
 
 ```bash
 set -euo pipefail
@@ -163,58 +163,58 @@ mkdir -p /var/tmp/archiso-work "$PWD/out"
 sudo mkarchiso -v -w /var/tmp/archiso-work -o "$PWD/out" "$PWD/builder/arch-profile"
 ```
 
-Checks previos obligatorios:
-- `work_dir` y `out_dir` existen (`mkdir -p`)
-- `bootstrap_packages.x86_64` existe (aunque esté vacío)
-- Rutas **relativas** al perfil (archiso hace `cd` al perfil)
+Mandatory pre-checks:
+- `work_dir` and `out_dir` exist (`mkdir -p`)
+- `bootstrap_packages.x86_64` exists (even if empty)
+- Paths are **relative to the profile** (archiso `cd`s into the profile)
 
 ### 8. Post-build
 
 ```bash
 set -euo pipefail
 
-# Limpieza del work dir — protegida contra rutas vacías
+# Work dir cleanup — guarded against empty paths
 : "${WORKDIR:=/var/tmp/archiso-work}"
 case "$WORKDIR" in
-  /|""|/var/tmp|/tmp) echo "❌ WORKDIR inseguro: $WORKDIR" >&2; exit 1 ;;
+  /|""|/var/tmp|/tmp) echo "❌ Unsafe WORKDIR: $WORKDIR" >&2; exit 1 ;;
 esac
 rm -rf -- "$WORKDIR"
 
 sha256sum out/*.iso > out/SHA256SUMS
 ```
 
-## Validación previa
+## Pre-build validation
 
-| Check | Comando | Esperado |
+| Check | Command | Expected |
 |---|---|---|
-| Perfil válido | `mkarchiso -v ... 2>&1 | head -10` | Sin ERROR, sólo INFO |
-| No community | `grep -R 'community' builder/arch-profile/` | ausente |
-| Syslinux existe | `ls builder/arch-profile/syslinux/` | `.cfg` presente |
-| UEFI existe | `ls builder/arch-profile/efiboot/loader/` | `loader.conf` presente |
-| XferCommand ok | `grep XferCommand builder/arch-profile/pacman.conf` | tiene `curl` |
+| Valid profile | `mkarchiso -v ... 2>&1 | head -10` | No ERROR, only INFO |
+| No community | `grep -R 'community' builder/arch-profile/` | absent |
+| Syslinux exists | `ls builder/arch-profile/syslinux/` | `.cfg` present |
+| UEFI exists | `ls builder/arch-profile/efiboot/loader/` | `loader.conf` present |
+| XferCommand ok | `grep XferCommand builder/arch-profile/pacman.conf` | has `curl` |
 
-## Handoff a otras skills del grupo
+## Handoff to other skills in the group
 
-| Si tocas... | Ve a |
+| If you touch... | Go to |
 |---|---|
-| particionado, .img, DATA | `arch-appliance-img` |
-| repo local firmado offline | `arch-frozen-repo` |
-| manifiesto KEY=VALUE + runtime | `arch-payload-manifest` |
-| escritorio, panel, kiosco | `arch-desktop-layers` |
-| pruebas, arranque, apagado | `arch-qemu-validation` |
-| "esto falló con..." | `arch-archlinux-pitfalls` |
-| validar hardware antes de escribir | `arch-hardware-handler` |
+| partitioning, .img, DATA | `arch-appliance-img` |
+| local signed offline repo | `arch-frozen-repo` |
+| KEY=VALUE manifest + runtime | `arch-payload-manifest` |
+| desktop, panel, kiosk | `arch-desktop-layers` |
+| tests, boot, shutdown | `arch-qemu-validation` |
+| "this failed with..." | `arch-archlinux-pitfalls` |
+| validate hardware before writing | `arch-hardware-handler` |
 
-## Errores comunes
+## Common errors
 
-| Error | Causa | Prevención |
+| Error | Cause | Prevention |
 |---|---|---|
-| `realpath: ''` | Variable vacía en profiledef.sh | Rutas relativas + fichero vacío creado |
-| `bootmode invalid` | `uefi.systemd-boot.esp` escrito a mano | Sólo los 3 nombres documentados |
-| `community.db` → **404** | `[community]` en pacman.conf | Quitar, usar sólo core+extra |
-| `DisableDownloadTimeout not recognized` | Flag de config, no CLI | Usar `XferCommand` con curl |
-| `pacman --root` reubica `GPGDir` | No es cierto | Keyring del host, target vacío |
-| `overlay` no preserva permisos | `cp -af` sin `--no-preserve` | `file_permissions` en profiledef.sh |
-| Build sin haber hecho Brief | Objetivo real no cumplido | **OBLIGATORIO**: Brief con 7 categorías |
-| `base-devel` en live sin necesidad | ~1 GB instalados sin uso | Revisar lista de paquetes |
-| `calamares` sin solicitud explícita | Instalador GUI no pedido | No incluir salvo que el Brief lo pida |
+| `realpath: ''` | Empty variable in profiledef.sh | Relative paths + empty file created |
+| `bootmode invalid` | `uefi.systemd-boot.esp` written by hand | Only the 3 documented names |
+| `community.db` → **404** | `[community]` in pacman.conf | Remove it; use only core+extra |
+| `DisableDownloadTimeout not recognized` | Config flag, not CLI | Use `XferCommand` with curl |
+| `pacman --root` relocates `GPGDir` | Not true | Host keyring, empty target |
+| `overlay` does not preserve permissions | `cp -af` without `--no-preserve` | `file_permissions` in profiledef.sh |
+| Build without completing the Brief | Real objective not met | **MANDATORY**: Brief with 7 categories |
+| `base-devel` in live unnecessarily | ~1 GB installed without use | Review the package list |
+| `calamares` without an explicit request | Unrequested GUI installer | Do not include it unless the Brief asks for it |

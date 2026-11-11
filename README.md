@@ -124,26 +124,6 @@ Any agent that reads the `SKILL.md` convention works:
 
 ---
 
-## Security & Audit
-
-This pack has been audited against the common patterns that agent-skill marketplaces flag. The current version (v1.1.0) ships with:
-
-| Pattern | Status |
-| :--- | :--- |
-| `root:root` / `toor` default password | ❌ Removed. `arch-appliance-img` now uses `passwd -e root` (forced change on first login). |
-| `curl \| sh` / `wget \| bash` | ❌ Not present anywhere in the default flow. |
-| Unguarded `rm -rf` | ❌ Guarded. `arch-iso-builder`'s cleanup rejects `/`, `/tmp`, `/var/tmp`, and empty `$WORKDIR`. |
-| Active `[aur]` repo with `SigLevel = Optional` | ❌ Commented out and moved to an "advanced" section with explicit risk warning in `arch-frozen-repo` and `arch-iso-builder`. |
-| `dd` without device validation | ❌ Guarded. `arch-hardware-handler` refuses to write to the host's root disk (`findmnt /` check) or a mounted device. |
-| Bash manifest parser with broken trim | ❌ Rewritten with `sed`-based trim and strict key validation. |
-| Missing `import select` in Python bridge | ❌ Fixed in `arch-qemu-validation`. |
-| Deprecated `customize_airootfs.sh` | ❌ Not used; pacman hooks + overlay + `file_permissions` instead. |
-| `community` repo (404 since 2026-11-09) | ❌ Never referenced; only `[core]` and `[extra]`. |
-
-**Manual verification:** every script in this repo is plain bash/Markdown. Read it before running it. If you find a pattern that should be flagged, open an issue.
-
----
-
 ## Mandatory Design Brief (7 Categories)
 
 No artifact is built without the user having explicitly decided:
@@ -155,8 +135,6 @@ No artifact is built without the user having explicitly decided:
 5. **Apps/payloads** — declared by manifest, never vendorized.
 6. **Immutability** — squashfs ro, rw with rule, or overlay.
 7. **Updates policy** — how and when updates apply.
-
-Skipping the Brief is the **#1 documented cause** of building the wrong artifact (see `arch-archlinux-pitfalls` §1 and §17).
 
 ---
 
@@ -203,13 +181,11 @@ arch-distro-design/
 └── LICENSE
 ```
 
-> **Migration note (v1.0 → v1.1):** `arch-archlinux-pitfalls/references/catalogo.md` was moved to `arch-archlinux-pitfalls/SKILL.md` during the security audit. This is the only path change. If you had the old path cached, update your symlinks.
-
 ---
 
 ## Versioning & Updates
 
-- **Current version:** `1.1.0` (security-audited).
+- **Current version:** `1.2.0` (English edition, security-audited).
 - **Semantic versioning:** MAJOR for breaking skill-interface changes; MINOR for new skills or new pitfalls entries; PATCH for typos and doc fixes.
 - **Agensi buyers:** 12 months of updates included from purchase date. Updates are delivered automatically through the Agensi platform.
 - **skills.sh / GitHub users:** `git pull` gets you everything.

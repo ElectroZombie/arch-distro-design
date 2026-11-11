@@ -5,6 +5,33 @@ All notable changes to **arch-distro-design** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-11-11
+
+English edition and repository hygiene release.
+
+### Changed
+- Translated all nine `SKILL.md` files from Spanish into correct English.
+  Code blocks, commands, paths, tables, warnings, and YAML frontmatter were
+  preserved; only prose and code comments were translated.
+- Normalized terminology across the pack (`Brief`, `payload`, `frozen repo`,
+  `layer`, `artifact`, `handoff`) so the skills read consistently.
+- Added `arch-hardware-handler` to the router's skill-group table, matching the
+  nine skills listed in the README and in `skills.sh.json`.
+- Corrected the `arch-payload-manifest` handoff table: the frozen-repo row now
+  points to `arch-frozen-repo` instead of duplicating the manifest row.
+- Renamed the Spanish checklist identifiers in `arch-archlinux-pitfalls` to
+  English (`brief_completed`, `objective_defined`, `output_format`,
+  `hardware_identified`, `network_policy`, `apps_payloads`, `update_policy`).
+
+### Repository hygiene
+- Added a `.gitignore` that excludes `docs/` and `.DS_Store`.
+- Removed `docs/` from git tracking with `git rm -r --cached docs`.
+  `docs/AGENSI-LISTING.md` and `docs/AGENSI-STRATEGY.md` remain on disk for
+  local use, but they are no longer committed.
+- Rebuilt the Agensi `.zip` from `skills/` only. It contains the nine
+  `SKILL.md` files and excludes `docs/`, `skills.sh.json`, `.git/`, and
+  `.DS_Store`.
+
 ## [1.1.0] — 2026-11-10
 
 ### Added
@@ -112,5 +139,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.2.0]: https://github.com/ElectroZombie/arch-distro-design/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ElectroZombie/arch-distro-design/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ElectroZombie/arch-distro-design/releases/tag/v1.0.0

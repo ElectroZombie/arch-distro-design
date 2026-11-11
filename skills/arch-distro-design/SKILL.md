@@ -5,175 +5,171 @@ description: 'Router and root skill for designing Arch Linux distributions. Deci
 
 # Arch Distro Design — Router
 
-Skill **raíz** del grupo. Decide **qué artefacto** se construye, **con qué capas**
-y **en qué orden**, y delega la ejecución concreta a las skills hermanas.
+**Root** skill of the group. It decides **which artifact** is built, **with which layers**, and **in what order**, and delegates the actual execution to the sibling skills.
 
-## Cuándo usar esta skill
+## When to use this skill
 
-- El usuario pide "una distro", "un appliance", "una ISO de Arch", "un sistema
-  autoalojado" sin especificar el formato exacto de salida.
-- Hay que decidir la **arquitectura** antes de escribir una sola línea de código.
-- Hay que fijar el **contrato** entre artefactos (qué va dentro de la ISO, qué va
-  en el .img, qué va en el payload).
+- The user asks for "a distro", "an appliance", "an Arch ISO", or "a self-hosted system" without specifying the exact output format.
+- The **architecture** must be decided before writing a single line of code.
+- The **contract** between artifacts must be fixed (what goes inside the ISO, what goes in the .img, what goes in the payload).
 
-## Grupo de skills (interrelacionado)
+## Skill group (interrelated)
 
-| Skill | Rol | Produce |
+| Skill | Role | Produces |
 |---|---|---|
-| `arch-distro-design` | **router** | capas, decisiones, contrato entre artefactos |
-| `arch-iso-builder` | constructor de ISO | perfil archiso + ISO arrancable |
-| `arch-appliance-img` | constructor de .img | imagen persistente EFI+SYS+DATA |
-| `arch-frozen-repo` | repos congelado | repo local firmado, offline, reproducible |
-| `arch-payload-manifest` | payloads | manifiesto `KEY=VALUE` + materialización |
-| `arch-desktop-layers` | escritorio | capas L0-L6 (console → GNOME/KDE) |
-| `arch-qemu-validation` | verificación | harness de pruebas en QEMU |
-| `arch-archlinux-pitfalls` | trampas | catálogo de fallos reales de Arch/archiso |
+| `arch-distro-design` | **router** | layers, decisions, contract between artifacts |
+| `arch-iso-builder` | ISO builder | archiso profile + bootable ISO |
+| `arch-appliance-img` | .img builder | persistent EFI+SYS+DATA image |
+| `arch-frozen-repo` | frozen repo | local signed, offline, reproducible repo |
+| `arch-payload-manifest` | payloads | `KEY=VALUE` manifest + materialization |
+| `arch-desktop-layers` | desktop | layers L0-L6 (console → GNOME/KDE) |
+| `arch-qemu-validation` | verification | QEMU test harness |
+| `arch-hardware-handler` | hardware | safe write + compatibility gate |
+| `arch-archlinux-pitfalls` | pitfalls | catalog of real Arch/archiso failures |
 
-> Todas se leen del mismo contexto: `arch-archlinux-pitfalls` es la memoria
-> empírica del grupo; `arch-qemu-validation` es el gate de calidad de todos los
-> demás.
+> All skills read from the same context: `arch-archlinux-pitfalls` is the group's
+> empirical memory; `arch-qemu-validation` is the quality gate for all the others.
 
-## Artefactos y fronteras
+## Artifacts and boundaries
 
-Regla de oro: **tres artefactos independientes**, cada uno versionado por
-separado.
+Golden rule: **three independent artifacts**, each versioned separately.
 
 ```
   ISO builder                .img appliance            app payload
-  (archiso)                  (pacstrap)                (repo de la app)
+  (archiso)                  (pacstrap)                (the app's repo)
       |                          |                          |
-      | contiene repo congelado  | contiene el SO base      | NUNCA se
-      | + instalador CLI         | + datos en DATA          | vendoriza aquí
-      +---- produce ------------>+ se le aplica ----------->+
+      | contains frozen repo     | contains the base OS     | NEVER
+      | + CLI installer          | + data in DATA           | vendored here
+      +---- produces ------------>+ is applied to ---------->+
 ```
 
-| Artefacto | Contiene | NO contiene |
+| Artifact | Contains | Does NOT contain |
 |---|---|---|
-| ISO | live rootfs, repo congelado, instalador CLI | código de apps, payloads |
-| .img | rootfs instalado, servicios, partición DATA | repo congelado (va en la ISO), código de apps |
-| payload | código + deps + unit + config | nada del SO base |
+| ISO | live rootfs, frozen repo, CLI installer | app code, payloads |
+| .img | installed rootfs, services, DATA partition | frozen repo (lives in the ISO), app code |
+| payload | code + deps + unit + config | anything from the base OS |
 
-**Por qué separarlos:**
-1. La ISO es **reutilizable**: un constructor, N appliances.
-2. Actualizar una app **no** obliga a reconstruir la ISO.
-3. El payload se versiona en **su propio repo** (el de la app), no en el de la distro.
-4. La ISO puede vivir en el repo de la distro; el .img suele ser un artefacto
-   de release (binario, checksum), no código.
+**Why separate them:**
+1. The ISO is **reusable**: one builder, N appliances.
+2. Updating an app does **not** force a rebuild of the ISO.
+3. The payload is versioned in **its own repo** (the app's repo), not the distro's.
+4. The ISO can live in the distro repo; the .img is usually a release
+   artifact (binary, checksum), not source code.
 
-## Capas (modelo L0..L4)
+## Layers (L0..L4 model)
 
-Cada capa es **acumulativa** y se puede vender suelta.
+Each layer is **cumulative** and can be sold on its own.
 
-| Capa | Contenido | Skill que la resuelve |
+| Layer | Content | Skill that resolves it |
 |---|---|---|
 | **L0** | boot + firmware + bootloader (UEFI+BIOS) | `arch-iso-builder`, `arch-appliance-img` |
-| **L1** | base: kernel, shell, herramientas, locales, TZ | `arch-iso-builder` |
-| **L2** | servicios: ssh, red (networkd), update-unit, time | `arch-appliance-img` |
-| **L3** | plataforma web: nginx, nftables, sin DB | `arch-appliance-img` |
-| **L4** | payloads de apps | `arch-payload-manifest` |
-| **L-1** | DATA: partición portable entre máquinas | `arch-appliance-img` |
+| **L1** | base: kernel, shell, tools, locales, TZ | `arch-iso-builder` |
+| **L2** | services: ssh, network (networkd), update-unit, time | `arch-appliance-img` |
+| **L3** | web platform: nginx, nftables, no DB | `arch-appliance-img` |
+| **L4** | app payloads | `arch-payload-manifest` |
+| **L-1** | DATA: partition portable across machines | `arch-appliance-img` |
 
-Reglas transversales:
-- **L3 no incluye base de datos.** La BD la declara el payload (`embedded`/`external`).
-- **L4 no toca el rootfs** fuera de `/opt` + units.
-- **L-1 nunca se toca desde el host** salvo por operación explícita del admin.
+Cross-cutting rules:
+- **L3 does not include a database.** The database is declared by the payload (`embedded`/`external`).
+- **L4 does not touch the rootfs** outside `/opt` + units.
+- **L-1 is never touched from the host** except through an explicit admin operation.
 
-## Proceso de diseño (obligatorio, en este orden)
+## Design process (mandatory, in this order)
 
-### 1. Brief (preguntas al usuario — NO adivinar)
+### 1. Brief (questions for the user — do NOT guess)
 
-| Pregunta | Por qué importa |
+| Question | Why it matters |
 |---|---|
-| ¿ISO live, .img persistente, o ambos? | Determina la skill principal |
-| ¿Objetivo? (kiosco POS, panel web, panel de control…) | Decide escritorio, red, payload |
-| ¿Hardware objetivo? (x86_64 UEFI? ARM? disco USB?) | Decide boot modes y particionado |
-| ¿Tamaño de disco? | Decide tabla de particiones (ver `arch-appliance-img`) |
-| ¿Red? (100% local, LAN DHCP, internet?) | Decide networkd + política de updates |
-| ¿Apps a incluir? | Decide payloads y si hace falta DB |
-| ¿Inmutabilidad? | Decide si root es rw o squashfs |
-| ¿Política de updates? | Decide `appliance-update.service` |
+| Live ISO, persistent .img, or both? | Determines the main skill |
+| Objective? (POS kiosk, web panel, control panel…) | Decides desktop, network, payload |
+| Target hardware? (x86_64 UEFI? ARM? USB disk?) | Decides boot modes and partitioning |
+| Disk size? | Decides the partition table (see `arch-appliance-img`) |
+| Network? (100% local, LAN DHCP, internet?) | Decides networkd + update policy |
+| Apps to include? | Decides payloads and whether a DB is needed |
+| Immutability? | Decides whether root is rw or squashfs |
+| Update policy? | Decides `appliance-update.service` |
 
-### 2. Contrato de artefactos
+### 2. Artifact contract
 
-Escribir (en `docs/`) la tabla "qué va en qué". Sin este contrato, la ISO
-empieza a tragarse cosas del .img y viceversa.
+Write (in `docs/`) the "what goes where" table. Without this contract, the ISO
+starts swallowing things that belong to the .img and vice versa.
 
-### 3. Política de red y updates (decisión que se paga caro)
+### 3. Network and update policy (a decision that is expensive to get wrong)
 
-Política por defecto recomendada:
+Recommended default policy:
 
-- Red **desactivada** por el admin en el host; el sistema arranca con networkd
-  **sin uplink**.
-- Actualizaciones **desactivadas** por defecto; las habilita el admin.
-- Si se actualiza: `pacman -Syu` con networkd temporalmente arriba, y
-  **log de versiones** en `/data/update-log/`.
-- La red la levanta **un solo servicio** (`appliance-update.service`), no un
-  daemon permanente.
+- Network **disabled** by the admin on the host; the system boots with networkd
+  **without an uplink**.
+- Updates **disabled** by default; the admin enables them.
+- If updating: `pacman -Syu` with networkd temporarily up, and a
+  **version log** in `/data/update-log/`.
+- The network is brought up by **a single service** (`appliance-update.service`),
+  not a permanent daemon.
 
-### 4. Modelo de inmutabilidad
+### 4. Immutability model
 
-| Modelo | Root | Cuándo |
+| Model | Root | When |
 |---|---|---|
-| `rw` (default) | rw | appliance persistente, con regla "solo el update-unit escribe" |
-| `squashfs` | ro | live ISO; escritura via CoW (`cow_spacesize`) |
-| `overlayfs` | ro+overlay | solo si hay hardware de sobra |
+| `rw` (default) | rw | persistent appliance, with the rule "only the update unit writes" |
+| `squashfs` | ro | live ISO; writes via CoW (`cow_spacesize`) |
+| `overlayfs` | ro+overlay | only if there is hardware to spare |
 
-### 5. Contrato de la ISO
+### 5. ISO contract
 
-La ISO define el **entorno de construcción** del .img:
-- repo congelado (offline, firmado),
-- `build.sh` con sus flags,
-- perfil de particionado,
-- manifiestos de payload.
+The ISO defines the **build environment** for the .img:
+- frozen repo (offline, signed),
+- `build.sh` with its flags,
+- partitioning profile,
+- payload manifests.
 
-Si la ISO y el .img pueden construirse **por separado**, el contrato está bien.
+If the ISO and the .img can be built **separately**, the contract is correct.
 
-### 6. Validación
+### 6. Validation
 
-Todo artefacto pasa por `arch-qemu-validation` **antes** de tocar hardware real.
+Every artifact goes through `arch-qemu-validation` **before** touching real hardware.
 
-## Checklist de diseño (gate)
+## Design checklist (gate)
 
-- [ ] Brief respondido por el usuario (no adivinado).
-- [ ] Artefacto principal identificado (ISO / .img / ambos).
-- [ ] Contrato "qué va en qué" escrito.
-- [ ] Política de red + updates decidida.
-- [ ] Modelo de inmutabilidad decidido.
-- [ ] Lista de paquetes con repo verificado (ver `arch-archlinux-pitfalls`).
-- [ ] Tamaño de disco y tabla de particiones decididos.
-- [ ] Apps → payloads con runtime y BD declarados.
-- [ ] Plan de validación QEMU definido.
+- [ ] Brief answered by the user (not guessed).
+- [ ] Main artifact identified (ISO / .img / both).
+- [ ] "What goes where" contract written.
+- [ ] Network + update policy decided.
+- [ ] Immutability model decided.
+- [ ] Package list with verified repo (see `arch-archlinux-pitfalls`).
+- [ ] Disk size and partition table decided.
+- [ ] Apps → payloads with runtime and DB declared.
+- [ ] QEMU validation plan defined.
 
-## Método de trabajo
+## Working method
 
-1. **Confirmar supuestos del entorno** — leer el código real (`/usr/bin/mkarchiso`,
-   `README.profile.rst`), no adivinar.
-2. **Comparar con la referencia oficial** — perfiles `releng`/`baseline` del upstream.
-3. **Verificar empíricamente** — medir, no suponer (throughput de mirrors, firma, permisos).
-4. **Documentar el error** — cada fallo real va a `arch-archlinux-pitfalls`.
+1. **Confirm environment assumptions** — read the actual code (`/usr/bin/mkarchiso`,
+   `README.profile.rst`); do not guess.
+2. **Compare against the official reference** — upstream `releng`/`baseline` profiles.
+3. **Verify empirically** — measure, do not assume (mirror throughput, signatures, permissions).
+4. **Document the error** — every real failure goes to `arch-archlinux-pitfalls`.
 
-## Errores de diseño más comunes
+## Most common design errors
 
-| Error | Síntoma | Prevención |
+| Error | Symptom | Prevention |
 |---|---|---|
-| Un solo artefacto gigante | ISO de 4 GB que nadie puede replicar | Separar ISO / .img / payload |
-| Repo congelado dentro de DATA | El .img no es portable | Repo **dentro de la ISO** |
-| Payload vendorizado | Cada app forkea el repo | Manifiesto + repo propio |
-| BD en la imagen base | appliance de 2 GB con Postgres sin usar | DB la declara el payload |
-| Display manager | Pantalla negra tras actualizar | `arch-desktop-layers` (sin DM) |
-| "Internet off" no decidido | El admin no sabe cómo actualizar | Política escrita + update-unit |
+| One giant artifact | 4 GB ISO that nobody can replicate | Separate ISO / .img / payload |
+| Frozen repo inside DATA | The .img is not portable | Repo **inside the ISO** |
+| Vendored payload | Every app forks the repo | Manifest + own repo |
+| DB in the base image | 2 GB appliance with unused Postgres | The payload declares the DB |
+| Display manager | Black screen after an update | `arch-desktop-layers` (no DM) |
+| "Internet off" undecided | The admin does not know how to update | Written policy + update unit |
 
 ## Handoff
 
-Cuando el diseño esté cerrado, delega:
+Once the design is settled, delegate:
 
-| Si toca... | Ve a |
+| If you are touching... | Go to |
 |---|---|
-| perfil archiso, boot, live | `arch-iso-builder` |
-| particionado, .img, systemd, updates | `arch-appliance-img` |
-| repo local firmado | `arch-frozen-repo` |
-| manifiesto de app, runtime, DB | `arch-payload-manifest` |
-| sesión gráfica, panel, kiosco | `arch-desktop-layers` |
-| pruebas, arranque, apagado | `arch-qemu-validation` |
-| "esto falló con...", dudas | `arch-archlinux-pitfalls` |
-| validar hardware antes de escribir | `arch-hardware-handler` |
+| archiso profile, boot, live | `arch-iso-builder` |
+| partitioning, .img, systemd, updates | `arch-appliance-img` |
+| local signed repo | `arch-frozen-repo` |
+| app manifest, runtime, DB | `arch-payload-manifest` |
+| graphical session, panel, kiosk | `arch-desktop-layers` |
+| tests, boot, shutdown | `arch-qemu-validation` |
+| "this failed with...", questions | `arch-archlinux-pitfalls` |
+| validate hardware before writing | `arch-hardware-handler` |

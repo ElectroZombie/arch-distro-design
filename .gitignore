@@ -1,0 +1,5 @@
+# Local, unpublished working notes (listing copy, pricing strategy, etc.)
+docs/
+
+# Editor / OS noise
+.DS_Store
