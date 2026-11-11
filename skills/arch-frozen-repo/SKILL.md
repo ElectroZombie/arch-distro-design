@@ -1,15 +1,19 @@
 ---
 name: arch-frozen-repo
-description: 'Create and maintain a frozen (offline, signed) pacman repository inside the ISO or appliance. Handles repo creation with repo-add, version pinning, and offline consumption. Integrates with the design brief from arch-distro-design.'
+description: 'Create and maintain a frozen (offline, signed) pacman repository inside the ISO or appliance. Handles repo creation with repo-add, version pinning, and offline consumption. Use when the appliance must work 100% offline and pacman -Syu must resolve against a local signed repo instead of the internet.'
 ---
 
 # Arch Frozen Repo — General Purpose
 
-Skill para crear y mantener un repositorio pacman **congelado** (offline, firmado, reproducible) que vive dentro de la ISO o del appliance .img. Este repositorio es el que el live/appliance usa para sincronizar paquetes **sin internet**, y es la fuente segura para `pacman -Syu`.
+Skill para crear y mantener un repositorio pacman **congelado** (offline,
+firmado, reproducible) que vive dentro de la ISO o del appliance `.img`. Este
+repositorio es el que el live/appliance usa para sincronizar paquetes **sin
+internet**, y es la fuente segura para `pacman -Syu`.
 
 ## ⚠️ Integra con el Brief de `arch-distro-design`
 
-> **Directiva desde `arch-distro-design`:** Las decisiones sobre repos y actualizaciones toman aquí. El `Brief` determina:
+> **Directiva desde `arch-distro-design`:** Las decisiones sobre repos y
+> actualizaciones se toman aquí. El `Brief` determina:
 
 | Categoría desde Brief | Decisión en `arch-frozen-repo` |
 |---|---|
@@ -17,9 +21,10 @@ Skill para crear y mantener un repositorio pacman **congelado** (offline, firmad
 | **Red** | Si internet está desactivada por defecto (`inactive` networkd). El repo frozen es la única fuente. |
 | **Apps / Payloads** | Quién materializa los payloads: el repo frozen provee paquetes, pero la materialización es desde repo propio de la app. |
 | **Inmutabilidad** | El repo frozen es **offline** por diseño; actualizaciones solo con `appliance-update.service`. |
-| **Politica de updates** | `versions.txt` commiteado tras cada build. El usuario puede cambiar la política de red (§3). |
+| **Política de updates** | `versions.txt` commiteado tras cada build. El usuario puede cambiar la política de red (§3). |
 
-> **Si el `Brief` no está completado, la generación del repo frozen se pausa y se pide al usuario las 7 categorías obligatorias.**
+> **Si el `Brief` no está completado, la generación del repo frozen se pausa y
+> se pide al usuario las 7 categorías obligatorias.**
 
 ## Propósito
 
@@ -27,53 +32,6 @@ Skill para crear y mantener un repositorio pacman **congelado** (offline, firmad
 - Evita que el admin dependa de internet para actualizaciones (política del proyecto).
 - Sirve como fuente de paquetes para la instalación de payloads (apps).
 - Se versiona junto con la ISO/appliance (archivos `versions.txt` + `SHA256SUMS`).
-- **Opcional:** Soporta gestores de paquetes alternativos (yay, pamac, pikaur) y sus repos, que pueden inyectarse en el overlay `airootfs/` para extender la funcionalidad sin romper la política offline.
-
-## Flujo de trabajo opcional: Gestores de paquetes alternativos
-
-### 1. Inyección de repos AUR/u otros en el overlay `airootfs/`
-
-```bash
-# Después de construir el repo frozen principal
-mkdir -p "$ISODIR/builder/arch-profile/airootfs/aur-repo"
-
-# Clonar o copiar paquetes AUR deseados
-git clone https://aur.archlinux.org/yay.git "$WORKDIR/yay"
-# O simplemente copiar .pkg.tar.zst ya compilados
-cp "$WORKDIR/pkg-aur"/*.pkg.tar.zst "$ISODIR/builder/arch-profile/airootfs/aur-repo/
-
-# Actualizar la DB principal para incluir los paquetes AUR (opcional)
-# Nota: Los paquetes AUR no están firmados por el keyring de Arch por defecto,
-# por lo que sigLevel en el live podría relajarse o usarse PackageOptional
-```
-
-### 2. `/etc/pacman.conf` del live con repos adicionales
-
-```ini
-[appliance]
-SigLevel = PackageRequired
-Server = file:///arch-repo
-
-# Repos adicionales (opcional, solo si el Brief lo permite)
-[aur]
-SigLevel = Optional
-Server = file:///aur-repo
-```
-
-> ⚠️ **Advertencia:** Los repos AUR u otros no-oficiales no tienen garantía de firma
-> ni compatibilidad total. Solo úselos si el `Brief` lo autoriza explícitamente.
-
-### 3. Consumo desde el appliance con gestores alternativos
-
-Si el usuario ha instalado `yay` o `pamac` dentro del .img/appliance:
-
-```bash
-# Desde el appliance, usando yay sobre el repo frozen
-yay -Sy --mflags --noconfirm # Actualiza frozen + AUR
-
-# O usando pamac con el config del sistema
-pamac update --force-refresh
-```
 
 ## Artefactos producidos
 
@@ -89,6 +47,8 @@ pamac update --force-refresh
 ### 1. Construir el repo congelado (después de ISO build)
 
 ```bash
+set -euo pipefail
+
 # 1. Directorio temporal con los .pkg a instalar (SIN instalarlos)
 mkdir -p "$WORKDIR/pkg"
 sudo pacman -Sw --cachedir "$WORKDIR/pkg" \
@@ -110,7 +70,7 @@ pacman -Sp --print-format '%n %v' --config builder/arch-profile/pacman.conf \
 
 ```
 arch-repo/
-├── appliance.db.tar.gz   # DB firmada (sigLevel PackageRequired en el live)
+├── appliance.db.tar.gz   # DB firmada (SigLevel PackageRequired en el live)
 ├── pkg1.pkg.tar.zst
 ├── pkg2.pkg.tar.zst
 └── ... (todos los paquetes LIVE + REPO extras)
@@ -124,7 +84,8 @@ SigLevel = PackageRequired
 Server = file:///arch-repo
 ```
 
-El live monta este repo al root (`/arch-repo`) porque hace `switch_root` sobre el squashfs, así que `/arch-repo` es una ruta absoluta dentro de la sesión live.
+El live monta este repo al root (`/arch-repo`) porque hace `switch_root` sobre
+el squashfs, así que `/arch-repo` es una ruta absoluta dentro de la sesión live.
 
 ### 4. Consumo desde el appliance (después de `pacstrap`)
 
@@ -153,8 +114,59 @@ pacman -Su --noconfirm --ignore glibc
 | DB firmada existe | `ls arch-repo/appliance.db.tar.gz` | presente |
 | Paquetes .pkg existen | `ls arch-repo/*.pkg.tar.zst` | lista no vacía |
 | versions.txt existe | `cat versions.txt` | `linux 6.6.8-1-etc` etc |
-| SigLevel correcto | grep 'PackageRequired' etc/pacman.conf | encontrado |
-| Repo consumable | `pacman -Sy --root / -c /etc/pacman.conf` | sync sin error |
+| SigLevel correcto | `grep 'PackageRequired' etc/pacman.conf` | encontrado |
+| Repo consumible | `pacman -Sy --root / -c /etc/pacman.conf` | sync sin error |
+
+## ⚠️ Sección AVANZADA: gestores de paquetes alternativos (AUR)
+
+> 🔴 **ADVERTENCIA DE SEGURIDAD — NO USAR POR DEFECTO.**
+> Los paquetes AUR **no están firmados** por el keyring oficial de Arch. Incluir
+> un repo AUR en el live **rompe el modelo de confianza** del repo frozen y
+> requiere `SigLevel = Optional` (verificación de firma desactivada). Esto es
+> exactamente el tipo de patrón que un escáner de seguridad marca como riesgo.
+> **Solo úsalo si el `Brief` lo autoriza explícitamente y el usuario acepta el
+> riesgo por escrito.**
+
+Si el Brief lo autoriza, el flujo es:
+
+### A.1 Inyección de repos AUR en el overlay `airootfs/`
+
+```bash
+set -euo pipefail
+
+mkdir -p "$ISODIR/builder/arch-profile/airootfs/aur-repo"
+
+# Opción A: copiar .pkg.tar.zst ya compilados (PREFERIDO — sin red en build)
+cp "$WORKDIR/pkg-aur"/*.pkg.tar.zst \
+   "$ISODIR/builder/arch-profile/airootfs/aur-repo/"
+
+# Opción B: clonar y compilar (requiere red y revisión manual del PKGBUILD)
+# ⚠️ Revisa el PKGBUILD antes de ejecutar makepkg. Nunca `makepkg -si` a ciegas.
+```
+
+### A.2 `/etc/pacman.conf` del live con repo AUR
+
+```ini
+[appliance]
+SigLevel = PackageRequired
+Server = file:///arch-repo
+
+# 🔴 Solo si el Brief lo autoriza. SigLevel=Optional desactiva la verificación
+# de firma para estos paquetes. Aísla este repo del resto.
+[aur]
+SigLevel = Optional
+Server = file:///aur-repo
+```
+
+### A.3 Consumo desde el appliance
+
+```bash
+# Desde el appliance, usando yay sobre el repo frozen (si está instalado)
+yay -Sy --noconfirm
+
+# O usando pamac con el config del sistema
+pamac update --force-refresh
+```
 
 ## Handoff a otras skills del grupo
 
@@ -165,5 +177,5 @@ pacman -Su --noconfirm --ignore glibc
 | manifiesto KEY=VALUE + runtime | `arch-payload-manifest` |
 | escritorio, panel, kiosco | `arch-desktop-layers` |
 | pruebas QEMU, boot, apagado | `arch-qemu-validation` |
-| "esto fallo con..." | `arch-archlinux-pitfalls` |
-| gestores de paquetes alternativos (yay/pamac) | `arch-iso-builder` (para inyección en overlay) |
+| "esto falló con..." | `arch-archlinux-pitfalls` |
+| validar hardware antes de escribir | `arch-hardware-handler` |

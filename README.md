@@ -1,107 +1,191 @@
 # arch-distro-design
 
-## GitHub Repository
-**https://github.com/ElectroZombie/arch-distro-design**
+**A governed harness of nine skills for building Arch Linux ISOs, `.img` appliances, and offline signed pacman repositories — designed for AI agents and disciplined human operators.**
 
-## Project Creator
-**ElectroZombie** (daphniphyllum901@gmail.com)
+> Where `archiso` gives you bricks, this gives you the architect, the building code, the inspection checklist, and the incident log.
+
+**Also available on:**
+- **Agensi.io** — packaged skill pack, ready to drop into any agent. *[Replace with your listing URL]*
+- **skills.sh** — indexed from this repository via `skills.sh.json`.
+
+---
 
 ## What This Is
-**arch-distro-design is an AI-agent harness for building robust Arch Linux ISOs and .img appliances.** It is not a replacement for `archiso`, `archuseriso`, or `nixos-generators` — it is the **orchestration, governance, and validation layer** that sits on top of them and makes them usable safely by an autonomous agent or a non-expert operator.
+
+**arch-distro-design** is an **AI-agent harness** for building robust Arch Linux ISOs and `.img` appliances. It is **not** a replacement for `archiso`, `archuseriso`, or `nixos-generators` — it is the **orchestration, governance, and validation layer** that sits on top of them and makes them usable safely by an autonomous agent or a non-expert operator.
 
 Where a raw build tool gives you bricks, this system gives you the **architect, the building code, the inspection checklist, and the incident log**. It turns "I want a distro" into a structured engineering project with explicit decisions, empirical validation gates, and a memory of real failures.
 
-## Why an AI Harness?
+---
+
+## The Problem
 
 Building an Arch-based distribution is a long sequence of fragile, order-dependent, and silently-failing steps. A language model executing that sequence naively will:
 
-- Build a technically valid ISO that does not meet the user's real objective.
-- Hit the `community` repo 404, the `realpath: ''` abort, or the `DisableDownloadTimeout` parser error and burn hours debugging them from scratch.
-- Repartition the host's `/dev/sda` because it did not check `lsblk` first.
-- Corrupt a USB stick by `kill -9`-ing QEMU mid-write.
+- Build a technically valid ISO that **does not meet the user's real objective**.
+- Hit the `community` repo 404, the `realpath: ''` abort, or the `DisableDownloadTimeout` parser error and **burn hours debugging them from scratch**.
+- **Repartition the host's `/dev/sda`** because it did not check `lsblk` first.
+- **Corrupt a USB stick** by `kill -9`-ing QEMU mid-write.
 
 This harness exists to **prevent exactly those failure modes**. It encodes the decisions, the safety checks, and the hard-won empirical lessons as mandatory gates that an agent must pass before producing an artifact.
+
+---
 
 ## Core Design Principles
 
 | Principle | Implementation |
 | :--- | :--- |
 | **Decide before you build** | Mandatory 7-category Brief. No construction without it. |
-| **Separate the artifacts** | ISO ≠ .img ≠ payload. Each versioned independently. |
+| **Separate the artifacts** | ISO ≠ `.img` ≠ payload. Each versioned independently. |
 | **Offline by default** | Frozen signed pacman repo embedded in the ISO. Network `inactive` unless the admin enables it. |
-| **Validate before hardware** | 15 QEMU checks for ISO, 13 for .img, hardware-handler gate before any physical write. |
+| **Validate before hardware** | 15 QEMU checks for ISO, 13 for `.img`, hardware-handler gate before any physical write. |
 | **Remember the failures** | `arch-archlinux-pitfalls` is a living catalog of real, dated errors with root causes and fixes. |
 | **Never vendorize apps** | Payloads are declared by manifest and materialized from their own repos. |
+| **Secure by default** | No `root:root` passwords, no `curl \| sh`, no unguarded `rm -rf`, no `[aur]` in the default flow. |
 
-## Benefits
+---
 
-1. **Agent safety.** The Brief and the validation gates make it very hard for an autonomous agent to produce a dangerous or useless artifact.
-2. **Reproducibility.** Frozen repo + `versions.txt` + `SHA256SUMS` give you a rollback-capable, verifiable build.
-3. **Institutional memory.** The pitfalls catalog means the same error is never debugged twice.
-4. **Lower barrier to entry.** A non-expert can execute a robust distro build by following the structured workflow.
-5. **Offline-first security posture.** No accidental internet dependency in a kiosk, POS, or edge appliance.
-6. **Clean artifact boundaries.** Updating an app never forces an ISO rebuild; one ISO serves N appliances.
+## The Nine Skills
 
-## Who This Is For
+| Phase | Skill | Role |
+| :--- | :--- | :--- |
+| **Design** | `arch-distro-design` | Mandatory entry point; Brief handler and router. |
+| **Construction** | `arch-iso-builder` | Live ISO constructor (uses `archiso 91-1`). |
+| **Construction** | `arch-appliance-img` | Persistent `.img` with EFI + SYS + portable DATA. |
+| **Construction** | `arch-frozen-repo` | Offline signed pacman repo embedded in the ISO. |
+| **Payload & Desktop** | `arch-payload-manifest` | Manifest-driven payload materialization (no vendoring). |
+| **Payload & Desktop** | `arch-desktop-layers` | Desktop layers L0 (console) → L6 (GNOME/KDE). |
+| **Validation** | `arch-qemu-validation` | QEMU harness (15 ISO / 13 `.img` checks) + graceful shutdown. |
+| **Validation** | `arch-hardware-handler` | Safe physical write and hardware compatibility gate. |
+| **Documentation** | `arch-archlinux-pitfalls` | Living catalog of real Arch/archiso errors. |
 
-- **AI agents** that must build Arch appliances without supervision.
-- **Engineers** who want a governed, reproducible process rather than ad-hoc `archiso` invocations.
-- **Operators** deploying single-purpose offline appliances (kiosks, self-hosted app servers, edge devices).
+---
 
-It is **not** aimed at users who just want a quick custom Arch ISO (use `archiso` or `archuseriso` directly) or at general-purpose desktop distros (Manjaro, EndeavourOS).
+## Install
 
-## Importing the Skills
+### Option A — Via Agensi.io *(recommended for AI agents)*
+
+Agensi packages the nine skills as a single `.zip` you drop into your agent's skills directory.
+
+1. Visit the listing on [Agensi.io](https://agensi.io) — *[replace with your listing URL]*.
+2. Purchase the pack (or grab the free `arch-distro-design` router skill to try it out).
+3. Download the `.zip` and extract:
+
+   ```bash
+   unzip arch-distro-design-agensi.zip -d /tmp/arch-distro-design
+   cp -r /tmp/arch-distro-design/skills/ ~/.agents/skills/
+   ```
+
+4. Restart your agent. The skills are now available.
+
+> **Note:** The Agensi pack does **not** include `skills.sh.json` — that file is only used by skills.sh for grouping. Agensi auto-detects a "skill pack" when it sees 2+ `SKILL.md` files.
+
+### Option B — Via skills.sh
+
+skills.sh indexes this repository directly from GitHub:
 
 ```bash
-cp -r skills/ ~/.agents/skills/
-# or symlink for easy updates
-ln -s /path/to/arch-distro-design/skills ~/.agents/skills/arch-distro-design
+npx skills add ElectroZombie/arch-distro-design
+```
+
+Or add individual skills by name from the [skills.sh catalog](https://skills.sh).
+
+The `skills.sh.json` file at the repo root defines the 5-phase grouping (Design → Construction → Payload & Desktop → Validation → Knowledge Base) shown in the skills.sh UI.
+
+### Option C — Manual (from GitHub)
+
+Clone the repo and symlink the `skills/` folder:
+
+```bash
+git clone https://github.com/ElectroZombie/arch-distro-design.git
+ln -s "$(pwd)/arch-distro-design/skills" ~/.agents/skills/arch-distro-design
 ls ~/.agents/skills/arch-*
 ```
 
+Symlinking (rather than copying) lets you pull updates with `git pull` without re-copying.
+
+---
+
+## Compatibility
+
+Any agent that reads the `SKILL.md` convention works:
+
+- **Claude Code** (`~/.claude/skills/` or `~/.agents/skills/`)
+- **Cursor** (`.cursor/skills/` or user skills folder)
+- **GitHub Copilot** (skills folder)
+- **Gemini CLI**
+- **Windsurf**
+- **Cline**
+- **Aider**
+- **Continue**
+- Any tool that reads `SKILL.md` files with YAML frontmatter (`name`, `description`).
+
+> If your agent has a different skills path, symlink `skills/` into it — the frontmatter format is standard.
+
+---
+
+## Security & Audit
+
+This pack has been audited against the common patterns that agent-skill marketplaces flag. The current version (v1.1.0) ships with:
+
+| Pattern | Status |
+| :--- | :--- |
+| `root:root` / `toor` default password | ❌ Removed. `arch-appliance-img` now uses `passwd -e root` (forced change on first login). |
+| `curl \| sh` / `wget \| bash` | ❌ Not present anywhere in the default flow. |
+| Unguarded `rm -rf` | ❌ Guarded. `arch-iso-builder`'s cleanup rejects `/`, `/tmp`, `/var/tmp`, and empty `$WORKDIR`. |
+| Active `[aur]` repo with `SigLevel = Optional` | ❌ Commented out and moved to an "advanced" section with explicit risk warning in `arch-frozen-repo` and `arch-iso-builder`. |
+| `dd` without device validation | ❌ Guarded. `arch-hardware-handler` refuses to write to the host's root disk (`findmnt /` check) or a mounted device. |
+| Bash manifest parser with broken trim | ❌ Rewritten with `sed`-based trim and strict key validation. |
+| Missing `import select` in Python bridge | ❌ Fixed in `arch-qemu-validation`. |
+| Deprecated `customize_airootfs.sh` | ❌ Not used; pacman hooks + overlay + `file_permissions` instead. |
+| `community` repo (404 since 2026-11-09) | ❌ Never referenced; only `[core]` and `[extra]`. |
+
+**Manual verification:** every script in this repo is plain bash/Markdown. Read it before running it. If you find a pattern that should be flagged, open an issue.
+
+---
+
 ## Mandatory Design Brief (7 Categories)
 
+No artifact is built without the user having explicitly decided:
+
 1. **Objective** — server, kiosk, workstation, appliance…
-2. **Output format** — ISO live, persistent `.img`, or both.
+2. **Output format** — live ISO, persistent `.img`, or both.
 3. **Target hardware** — x86_64 UEFI/BIOS, USB, HDD, SSD, NVMe (validated by `arch-hardware-handler`).
 4. **Network policy** — `enabled` or `disabled` by default (admin can change later).
 5. **Apps/payloads** — declared by manifest, never vendorized.
 6. **Immutability** — squashfs ro, rw with rule, or overlay.
 7. **Updates policy** — how and when updates apply.
 
-## The 9 Skills
+Skipping the Brief is the **#1 documented cause** of building the wrong artifact (see `arch-archlinux-pitfalls` §1 and §17).
 
-| Phase | Skill | Role |
-| :--- | :--- | :--- |
-| Design | `arch-distro-design` | Mandatory entry point; Brief handler and router. |
-| Construction | `arch-iso-builder` | Live ISO constructor (uses `archiso`). |
-| Construction | `arch-appliance-img` | Persistent `.img` with EFI+SYS+DATA. |
-| Construction | `arch-frozen-repo` | Offline signed pacman repo. |
-| Payload & Desktop | `arch-payload-manifest` | Manifest-driven payload materialization. |
-| Payload & Desktop | `arch-desktop-layers` | Desktop layers L0–L6 (console → GNOME/KDE). |
-| Validation | `arch-qemu-validation` | QEMU harness (15 ISO / 13 .img checks). |
-| Validation | `arch-hardware-handler` | Safe physical write and compatibility checks. |
-| Documentation | `arch-archlinux-pitfalls` | Living catalog of real errors. |
+---
 
 ## Build Workflow
 
-1. Complete the mandatory Brief.
-2. Design with the decisions taken (never guessed).
-3. Validate empirically (mirror throughput, signatures, permissions).
-4. Document every real error in `arch-archlinux-pitfalls`.
-5. Build the artifact (execution only — design is done).
-6. Verify in QEMU via `arch-qemu-validation`.
-7. Validate physical hardware via `arch-hardware-handler`.
+1. **Complete the mandatory Brief** (`arch-distro-design`).
+2. **Design** with the decisions taken — never guessed.
+3. **Validate empirically** — mirror throughput, signatures, permissions.
+4. **Document every real error** in `arch-archlinux-pitfalls`.
+5. **Build the artifact** (`arch-iso-builder` / `arch-appliance-img` / `arch-frozen-repo`).
+6. **Verify in QEMU** via `arch-qemu-validation`.
+7. **Validate physical hardware** via `arch-hardware-handler` before touching real disks.
+
+---
 
 ## Artifacts Produced
 
 - `out/*.iso` — bootable ISO (BIOS + UEFI) with squashfs rootfs.
 - `out/SHA256SUMS` — ISO checksums.
-- `out/appliance-*.img` — persistent appliance with EFI+SYS+DATA.
+- `out/appliance-*.img` — persistent appliance with EFI + SYS + DATA.
 - `builder/arch-profile/` — profile ready for `mkarchiso`.
+- `arch-repo/` — offline signed pacman repository (embedded in the ISO).
+- `out/versions.txt` — pinned package versions for rollback.
+
+---
 
 ## Project Structure
 
+```
 arch-distro-design/
 ├── skills/
 │   ├── arch-distro-design/SKILL.md
@@ -112,20 +196,64 @@ arch-distro-design/
 │   ├── arch-desktop-layers/SKILL.md
 │   ├── arch-qemu-validation/SKILL.md
 │   ├── arch-hardware-handler/SKILL.md
-│   └── arch-archlinux-pitfalls/references/catalogo.md
+│   └── arch-archlinux-pitfalls/SKILL.md
+├── skills.sh.json          # Grouping metadata (skills.sh only; ignored by Agensi)
+├── CHANGELOG.md
 ├── README.md
-└── .git/
+└── LICENSE
+```
 
-# About
+> **Migration note (v1.0 → v1.1):** `arch-archlinux-pitfalls/references/catalogo.md` was moved to `arch-archlinux-pitfalls/SKILL.md` during the security audit. This is the only path change. If you had the old path cached, update your symlinks.
+
+---
+
+## Versioning & Updates
+
+- **Current version:** `1.1.0` (security-audited).
+- **Semantic versioning:** MAJOR for breaking skill-interface changes; MINOR for new skills or new pitfalls entries; PATCH for typos and doc fixes.
+- **Agensi buyers:** 12 months of updates included from purchase date. Updates are delivered automatically through the Agensi platform.
+- **skills.sh / GitHub users:** `git pull` gets you everything.
+
+See [`CHANGELOG.md`](./CHANGELOG.md) for the full history.
+
+---
+
+## Support
+
+- **Bugs, questions, feature requests:** [open a GitHub issue](https://github.com/ElectroZombie/arch-distro-design/issues).
+- **Agensi buyers:** also via the creator profile on Agensi (48h response target).
+- **Security disclosures:** please email `daphniphyllum901@gmail.com` instead of opening a public issue.
+
+No SLA for custom builds, but substantive questions usually get answered quickly.
+
+---
+
+## License
+
+**Personal and internal commercial use allowed. Redistribution, resale, or repackaging as a competing skill pack is not permitted without explicit permission.**
+
+See [`LICENSE`](./LICENSE) for the full text.
+
+---
+
+## About
 
 **arch-distro-design** is an open AI-agent harness for building Arch Linux ISOs and persistent `.img` appliances with the discipline of a real engineering process. It consists of nine interconnected skills that cover the full lifecycle: a mandatory design Brief, ISO and `.img` construction, an offline frozen package repository, manifest-driven app payloads, seven desktop layers from console-only to GNOME/KDE, QEMU and hardware validation gates, and a living catalog of real Arch pitfalls.
 
 The project's thesis is simple. Building an Arch-based distribution is a long chain of fragile, order-dependent steps that fail silently and expensively. A naive agent — or a hurried human — will produce a technically valid artifact that misses the real objective, hit the `community` 404 or the `DisableDownloadTimeout` parser error, repartition the wrong disk, or corrupt a USB stick by force-killing QEMU mid-write. This harness exists to prevent exactly those failures by encoding decisions, safety checks, and hard-won empirical lessons as mandatory gates.
 
-It is **not** a replacement for `archiso`, `archuseriso`, or `nixos-generators`. It is the orchestration and governance layer that sits on top of them: where those tools give you bricks, this gives you the architect, the building code, the inspection checklist, and the incident log. The closest functional competitor is `archuseriso`; the closest paradigm competitor is `nixos-generators`. Neither governs the design and validation process the way this system does.
+It is **not** a replacement for `archiso`, `archuseriso`, or `nixos-generators`. It is the orchestration and governance layer that sits on top of them. The closest functional competitor is `archuseriso`; the closest paradigm competitor is `nixos-generators`. Neither governs the design and validation process the way this system does.
 
-The benefits are concrete: agent safety, reproducibility through a frozen repo and versioned checksums, institutional memory of real errors, a lower barrier to entry for robust distro builds, an offline-first security posture, and clean artifact boundaries so that updating an app never forces an ISO rebuild.
+**Built for:** AI agents that must build Arch appliances without supervision, engineers who want a governed reproducible process, and operators deploying single-purpose offline devices.
 
-It is built for AI agents that must build Arch appliances without supervision, for engineers who want a governed reproducible process, and for operators deploying single-purpose offline devices. It is not for users who just want a quick custom ISO — for that, `archiso` and `archuseriso` are more direct.
+**Not for:** users who just want a quick custom ISO — for that, `archiso` and `archuseriso` are more direct.
 
-**Repository:** https://github.com/ElectroZombie/arch-distro-design
+---
+
+## Links
+
+- **Repository:** https://github.com/ElectroZombie/arch-distro-design
+- **Agensi listing:** *[replace with your listing URL]*
+- **skills.sh:** https://skills.sh *(search "arch-distro-design")*
+- **Issues:** https://github.com/ElectroZombie/arch-distro-design/issues
+- **Author:** ElectroZombie — `daphniphyllum901@gmail.com`

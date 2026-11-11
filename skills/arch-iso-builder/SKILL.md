@@ -1,27 +1,31 @@
 ---
 name: arch-iso-builder
-description: 'Build Arch Linux live ISOs with archiso. Handles profile configuration, package selection, boot modes, and ISO generation. The main orchestration skill for the group, orchestrating based on the design brief from arch-distro-design.'
+description: 'Build Arch Linux live ISOs with archiso. Handles profile configuration, package selection, boot modes (BIOS syslinux + UEFI systemd-boot), and ISO generation. The main orchestration skill for the group, driven by the design brief from arch-distro-design. Use when the user needs a bootable live ISO.'
 ---
 
 # Arch ISO Builder — General Purpose
 
-Skill para construir ISOs live de Arch Linux usando `archiso 91-1`. Sirve para **cualquier** distribución basada en Arch. Decide la estructura del perfil, qué paquetes van en el live vs el repo congelado, y lanza `mkarchiso`.
+Skill para construir ISOs live de Arch Linux usando `archiso 91-1`. Sirve para
+**cualquier** distribución basada en Arch. Decide la estructura del perfil, qué
+paquetes van en el live vs el repo congelado, y lanza `mkarchiso`.
 
-## ⚠️ OBLIGATORIO: Brief previo obligatorio
+## ⚠️ OBLIGATORIO: Brief previo
 
-> **Directiva desde `arch-distro-design`:** Esta skill **NUNCA** debe invocarse sin antes haber completado el `Brief` de diseño. El `arch-distro-design` skill debe haber devuelto decisiones sobre:
+> **Directiva desde `arch-distro-design`:** Esta skill **NUNCA** debe invocarse
+> sin antes haber completado el `Brief` de diseño.
 
 | Categoría | Qué define para esta skill |
 |---|---|
-| **Objetivo** | Si es ISO live, .img persistente, o ambos. Define el propósito general. |
+| **Objetivo** | Si es ISO live, .img persistente, o ambos. |
 | **Formato de salida** | Determina si construimos ISO, .img, o ambos. |
-| **Hardware objetivo** | x86_64 UEFI, BIOS, disco USB, HDD, SSD, NVMe. Valida con `arch-hardware-handler` antes de escribir. |
-| **Red** | 100% local, LAN DHCP, internet esperado, o completamente offline. Define politica de networkd. |
-| **Apps / Payloads** | Qué aplicaciones se incluyen, runtimes, BD. Define L4 payloads. |
+| **Hardware objetivo** | x86_64 UEFI, BIOS, disco USB, HDD, SSD, NVMe. |
+| **Red** | 100% local, LAN DHCP, internet esperado, o completamente offline. |
+| **Apps / Payloads** | Qué aplicaciones se incluyen, runtimes, BD. |
 | **Inmutabilidad** | Root squashfs ro, rw con regla, o overlay? |
-| **Politica de updates** | Cómo y cuando se actualiza. El usuario puede cambiarla (ver §3). |
+| **Política de updates** | Cómo y cuándo se actualiza. |
 
-> **Si el `Brief` no está completado, detener la invocación y pedir al usuario las 7 categorías obligatorias.**
+> **Si el `Brief` no está completado, detener la invocación y pedir las 7
+> categorías obligatorias.**
 
 ## Cuándo usar esta skill
 
@@ -29,7 +33,7 @@ Skill para construir ISOs live de Arch Linux usando `archiso 91-1`. Sirve para *
 - El `arch-distro-design` ya tomó las decisiones de diseño y las transmitió.
 - Se necesita un perfil archiso válido (boot modes, variables, overlay).
 - Se quiere validar que el perfil pasa `mkarchiso --validate` antes de construir.
-- Se necesita inyectar overlay `airootfs/` personalizado (shadow, locale, ssh, scripts).
+- Se necesita inyectar overlay `airootfs/` personalizado.
 
 ## Artefactos producidos
 
@@ -43,11 +47,11 @@ Skill para construir ISOs live de Arch Linux usando `archiso 91-1`. Sirve para *
 
 ### 1. Recibir el `Brief` de `arch-distro-design`
 
-El `arch-distro-design` debe haber definido ya las 7 categorías. Esta skill las usa para configurarse.
+El `arch-distro-design` debe haber definido ya las 7 categorías.
 
 ### 2. Definir perfil (`profiledef.sh`)
 
-Variables críticas que **siempre** deben declararse (después de recibir el Brief):
+Variables críticas que **siempre** deben declararse:
 
 ```bash
 iso_name="distro-name"
@@ -55,7 +59,7 @@ iso_label="LABEL"
 iso_publisher="publisher"
 iso_application="Descripción"
 install_dir="arch"          # relativo, máximo 30 chars [a-z0-9]
-buildmodes=('iso')         # validos: bios.syslinux, uefi.systemd-boot
+buildmodes=('iso')         # válidos: bios.syslinux, uefi.systemd-boot
 bootmodes=('bios.syslinux' 'uefi.systemd-boot') # SOLO estos 3 en archiso 91-1
 pacman_conf="pacman.conf"
 packages="packages.x86_64"
@@ -66,26 +70,27 @@ kernel_params="console=tty0 console=ttyS0,115200n8"
 
 ### 3. Lista de paquetes (`packages.x86_64`)
 
-Esta lista está pensada para ser **genérica y no vendorizada** para un caso de uso específico. Incluye:
-
-| Categoría | Paquetes (ejemplos - **seleccionar según objetivo del Brief**) |
+| Categoría | Paquetes (ejemplos — seleccionar según objetivo del Brief) |
 |---|---|
 | **base del sistema** | `base`, `linux`, `linux-firmware`, `grub`, `efibootmgr` |
 | **archiso obligatorios** | `mkinitcpio`, `mkinitcpio-archiso`, `syslinux` |
 | **herramientas del builder** | `e2fsprogs`, `dosfstools`, `parted`, `arch-install-scripts` |
 | **acceso y mantenimiento** | `openssh`, `sudo`, `tmux`, `curl`, `rsync`, `wget`, `htop`, `nano`, `vim`, `less`, `usbutils`, `pciutils`, `nftables` |
-| **gestores de ventana** (elegir según objetivo) | `openbox`, `i3`, `bspwm`, `awesome`, `herbstluftwm`, `jwm`, `fluxbox`, `windowmaker` |
-| **gestores de archivos** (elegir según objetivo) | `pcmanfm-qt`, `thunar`, `nemo`, `caja`, `rox-filer`, `spacefm`, `ranger`, `nnn`, `lf` |
-| **entorno de escritorio** (opcional, según objetivo) | `xorg-server`, `xorg-xinit`, `falkon`, `kde-plasma-desktop` (o solo `plasma-desktop`), `xfce4`, `gNOME`, `mate-desktop`, `kde-apps` |
+| **gestores de ventana** (elegir) | `openbox`, `i3`, `bspwm`, `awesome`, `herbstluftwm`, `jwm`, `fluxbox`, `windowmaker` |
+| **gestores de archivos** (elegir) | `pcmanfm-qt`, `thunar`, `nemo`, `caja`, `rox-filer`, `spacefm`, `ranger`, `nnn`, `lf` |
+| **entorno de escritorio** (opcional) | `xorg-server`, `xorg-xinit`, `falkon`, `plasma-desktop`, `xfce4`, `gnome`, `mate-desktop` |
 | **visor de imágenes** | `feh`, `sxiv`, `imagemagick` |
 | **editor de texto** | `vim`, `nano`, `neovim`, `leafpad`, `mousepad` |
-| **NUNCA en live** | `base-devel` (aprox. 1 GB sin uso para el instalador), `calamares` (a menos que se solicite explícitamente como instalador GUI) |
+| **NUNCA en live** | `base-devel` (~1 GB sin uso), `calamares` (salvo pedido explícito) |
 
-> **⚠️ community fue fusionado en extra** (2026-11-09). Nunca declarar `[community]`: rompe el build con 404.
+> **⚠️ `community` fue fusionado en `extra`** (2026-11-09). Nunca declarar
+> `[community]`: rompe el build con 404.
 
 ### 4. `pacman.conf` del perfil
 
-**⚠️ OBLIGATORIO:** El host de build debe ser siempre **Arch** para garantizar compatibilidad y seguridad. No usar `Include = /etc/pacman.d/mirrorlist` (el host puede ser Manjaro/otros y contaminaría el ISO con paquetes no-Arch).
+**⚠️ OBLIGATORIO:** El host de build debe ser siempre **Arch**. No usar
+`Include = /etc/pacman.d/mirrorlist` (el host puede ser Manjaro/otros y
+contaminaría el ISO con paquetes no-Arch).
 
 ```ini
 [options]
@@ -100,37 +105,39 @@ Server = https://mirror.raiolanetworks.com/archlinux/$repo/os/$arch
 Server = https://mirror.dkm.cz/archlinux/$repo/os/$arch
 Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch
 Server = https://mirrors.dotsrc.org/archlinux/$repo/os/$arch
-Server = https://mirror.garr.it-archlinux.org/archlinux/$repo/os/$arch
+Server = https://mirror.garr.it/archlinux/$repo/os/$arch
 
 [extra]
 Server = https://mirror.raiolanetworks.com/archlinux/$repo/os/$arch
 Server = https://mirror.dkm.cz/archlinux/$repo/os/$arch
 Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch
 Server = https://mirrors.dotsrc.org/archlinux/$repo/os/$arch
-Server = https://mirror.garr.it-archlinux.org/archlinux/$repo/os/$arch
+Server = https://mirror.garr.it/archlinux/$repo/os/$arch
 
-# Repositorio AUR opcional (solo si el Brief lo autoriza)
-# Los paquetes AUR no tienen firma de Arch por defecto
-[aur]
-SigLevel = Optional
-Server = file:///aur-repo
+# 🔴 Repositorio AUR — NO INCLUIR POR DEFECTO.
+# Los paquetes AUR no están firmados por el keyring de Arch. SigLevel=Optional
+# desactiva la verificación de firma. Solo incluir si el Brief lo autoriza
+# explícitamente y el usuario acepta el riesgo por escrito.
+# [aur]
+# SigLevel = Optional
+# Server = file:///aur-repo
+```
 
-**XferCommand** (flag CLI, no directiva config): `--speed-time 120 --speed-limit 10` para tolerar mirrors intermitentes.
+> **Mínimo 5 servers por repo** (core y extra) para tolerar fallos de mirrors.
 
-> **Mínimo 5 servers por repo** (core y extra) para tolerar fallos de mirrors individuales.
-
-> **Repos AUR:** Solo incluir si el `Brief` de `arch-distro-design` lo autoriza.
-> La política por defecto es 100% offline; los repos AUR rompen el aislamiento offline.
+> **XferCommand** (flag CLI, no directiva config): `--speed-time 120 --speed-limit 10`
+> para tolerar mirrors intermitentes.
 
 ### 5. Overlay `airootfs/`
 
-Archivos que se inyectan al rootfs live. `mkarchiso` copia `airootfs/.` **con modo 644/755**, por eso `file_permissions` en `profiledef.sh` es obligatorio para ejecutables.
+`mkarchiso` copia `airootfs/.` **con modo 644/755**, por eso `file_permissions`
+en `profiledef.sh` es obligatorio para ejecutables.
 
 | Fichero | Motivo |
 |---|---|
 | `etc/shadow` | password root del live |
 | `etc/pacman.conf` | override: repo `community` 404 → own config con `[appliance]` |
-| `etc/mkinitcpio.conf.d/archiso.conf` | hooks OBLIGATORIOS: `base ude...` |
+| `etc/mkinitcpio.conf.d/archiso.conf` | hooks OBLIGATORIOS: `base udev archiso archiso_loop_mnt memdisk microcode` |
 | `etc/systemd/system/getty@tty1.service.d/autologin.conf` | autologin tty1 |
 | `root/.bash_profile` | `startx` si `tty = /dev/tty1` |
 | `root/.xinitrc` | `tint2 &` + `exec openbox-session` (o el WM que elija el Brief) |
@@ -144,11 +151,14 @@ Archivos que se inyectan al rootfs live. `mkarchiso` copia `airootfs/.` **con mo
 | `uefi.systemd-boot` | UEFI systemd-boot | `efiboot/loader/loader.conf` + `.conf` |
 | `uefi.grub` | UEFI con GRUB | `grub/` |
 
-> Los sufijos `.esp` / `.mbr` / `.eltorito` son **internos** de archiso y fallan `return 1`. No usarlos.
+> Los sufijos `.esp` / `.mbr` / `.eltorito` son **internos** de archiso y fallan
+> `return 1`. No usarlos.
 
 ### 7. Llamada a `mkarchiso`
 
 ```bash
+set -euo pipefail
+
 mkdir -p /var/tmp/archiso-work "$PWD/out"
 sudo mkarchiso -v -w /var/tmp/archiso-work -o "$PWD/out" "$PWD/builder/arch-profile"
 ```
@@ -161,7 +171,15 @@ Checks previos obligatorios:
 ### 8. Post-build
 
 ```bash
-rm -rf /var/tmp/archiso-work        # limpieza obligatoria
+set -euo pipefail
+
+# Limpieza del work dir — protegida contra rutas vacías
+: "${WORKDIR:=/var/tmp/archiso-work}"
+case "$WORKDIR" in
+  /|""|/var/tmp|/tmp) echo "❌ WORKDIR inseguro: $WORKDIR" >&2; exit 1 ;;
+esac
+rm -rf -- "$WORKDIR"
+
 sha256sum out/*.iso > out/SHA256SUMS
 ```
 
@@ -170,10 +188,10 @@ sha256sum out/*.iso > out/SHA256SUMS
 | Check | Comando | Esperado |
 |---|---|---|
 | Perfil válido | `mkarchiso -v ... 2>&1 | head -10` | Sin ERROR, sólo INFO |
-| No community | grep -R 'community' builder/arch-profile/ | ausente |
-| Syslinux existe | ls builder/arch-profile/syslinux/ | `.cfg` presente |
-| UEFI existe | ls builder/arch-profile/efiboot/loader/ | `loader.conf` presente |
-| XferCommand ok | grep XferCommand builder/arch-profile/pacman.conf | tiene `curl` |
+| No community | `grep -R 'community' builder/arch-profile/` | ausente |
+| Syslinux existe | `ls builder/arch-profile/syslinux/` | `.cfg` presente |
+| UEFI existe | `ls builder/arch-profile/efiboot/loader/` | `loader.conf` presente |
+| XferCommand ok | `grep XferCommand builder/arch-profile/pacman.conf` | tiene `curl` |
 
 ## Handoff a otras skills del grupo
 
@@ -184,10 +202,10 @@ sha256sum out/*.iso > out/SHA256SUMS
 | manifiesto KEY=VALUE + runtime | `arch-payload-manifest` |
 | escritorio, panel, kiosco | `arch-desktop-layers` |
 | pruebas, arranque, apagado | `arch-qemu-validation` |
-| "esto fallo con..." | `arch-archlinux-pitfalls` |
+| "esto falló con..." | `arch-archlinux-pitfalls` |
 | validar hardware antes de escribir | `arch-hardware-handler` |
 
-## Errores comunes (arch-archlinux-pitfalls)
+## Errores comunes
 
 | Error | Causa | Prevención |
 |---|---|---|
@@ -196,8 +214,7 @@ sha256sum out/*.iso > out/SHA256SUMS
 | `community.db` → **404** | `[community]` en pacman.conf | Quitar, usar sólo core+extra |
 | `DisableDownloadTimeout not recognized` | Flag de config, no CLI | Usar `XferCommand` con curl |
 | `pacman --root` reubica `GPGDir` | No es cierto | Keyring del host, target vacío |
-| `overlay` no preserva permisos | cp -af sin --no-preserve | `file_permissions` en profiledef.sh |
-| `DisableDownloadTimeout` como directiva config | Parser pacman no lo acepta | `XferCommand` es la alternativa |
-| Build sin haber hecho Brief | Objetivo real no cumplido | **OBLIGATORIO**: Brief con 7 categorias antes de empezar |
-| `base-devel` en live sin necesidad | Aprox. 1 GB instalados sin uso | Revisar Lista de paquetes: solo lo que realmente se necesita |
-| `calamares` sin solicitud explícita | Instalador GUI no pedido | No incluir a menos que el Brief pida instalador gráfico |
+| `overlay` no preserva permisos | `cp -af` sin `--no-preserve` | `file_permissions` en profiledef.sh |
+| Build sin haber hecho Brief | Objetivo real no cumplido | **OBLIGATORIO**: Brief con 7 categorías |
+| `base-devel` en live sin necesidad | ~1 GB instalados sin uso | Revisar lista de paquetes |
+| `calamares` sin solicitud explícita | Instalador GUI no pedido | No incluir salvo que el Brief lo pida |

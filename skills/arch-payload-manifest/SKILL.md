@@ -1,26 +1,28 @@
 ---
 name: arch-payload-manifest
-description: 'Parse and materialize app payloads from their own repositories. KEY=VALUE manifest format, bash-only parsing (no jq/yq/python). Handles runtime selection (native/nspawn/podman), embedded/external databases, and volume mappings. Integrates with the design brief from arch-distro-design.'
+description: 'Parse and materialize app payloads from their own repositories. KEY=VALUE manifest format, bash-only parsing (no jq/yq/python). Handles runtime selection (native/nspawn/podman), embedded/external databases, and volume mappings. Use when an appliance needs to install self-hosted apps without vendoring their code.'
 ---
 
 # Arch Payload Manifest — General Purpose
 
-Skill para leer, validar y materializar **payloads** (sistemas autoalojados completos) desde **el propio repositorio de cada app**. Este repo **no vendoriza** código de apps: cada payload vive en su propio repo y se materializa en el appliance cuando se instala.
+Skill para leer, validar y materializar **payloads** (sistemas autoalojados
+completos) desde **el propio repositorio de cada app**. Este repo **no
+vendoriza** código de apps: cada payload vive en su propio repo y se materializa
+en el appliance cuando se instala.
 
 ## Principio innegociable
 
 > ❌ **Nunca** se vendoriza el código de una app en el repo del proyecto.
+> ✅ El payload se declara por **manifiesto** y se materializa desde el repo
+> propio de la app, en el momento de la instalación.
 
-> ✅ El payload se declara por **manifiesto** y se materializa desde el repo propio
-> de la app, en el momento de la instalación.
-
-Esto mantiene el constructor genérico: una ISO sirve para N apps distintas, y actualizar
-una app no obliga a reconstruir la ISO.
+Esto mantiene el constructor genérico: una ISO sirve para N apps distintas, y
+actualizar una app no obliga a reconstruir la ISO.
 
 ## Formato del manifiesto
 
-`KEY=VALUE`, una clave por línea, parseable con **bash puro** (sin `jq`, `yq`
-ni `python`). Comentarios con `#`. Líneas vacías se ignoran.
+`KEY=VALUE`, una clave por línea, parseable con **bash puro** (sin `jq`, `yq` ni
+`python`). Comentarios con `#`. Líneas vacías se ignoran.
 
 ```bash
 # Ejemplo: apps/mail/app.conf
@@ -44,7 +46,7 @@ RESTART=always
 HEALTHCHECK=http://127.0.0.1:8080/health
 ```
 
-## Clave riconosciadas
+## Claves reconocidas
 
 | Clave | Obligatoria | Valores | Significado |
 |---|---|---|---|
@@ -67,24 +69,42 @@ HEALTHCHECK=http://127.0.0.1:8080/health
 
 ## Parseo en bash (sin dependencias)
 
+> 🔧 Parser corregido: la versión anterior tenía una línea de trim rota.
+
 ```bash
 #!/usr/bin/env bash
 # load-manifest.sh — lee un manifiesto KEY=VALUE y exporta associative array
+set -euo pipefail
 
 load_manifest() {
-    local file="$1" key value
-    # shellcheck disable=SC2034
+    local file="$1" key value line
     declare -gA MANIFEST=()
-    while IFS='=' read -r key value; do
-        key="${key%%[[:space:]]*}"                 # trim left
-        key="${key%[[:space:]]}"                    # trim right
+
+    [[ -f "$file" ]] || { echo "❌ no existe: $file" >&2; return 1; }
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Saltar comentarios y líneas vacías
+        [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
+
+        # Debe contener '='
+        [[ "$line" == *=* ]] || continue
+
+        key="${line%%=*}"
+        value="${line#*=}"
+
+        # Trim de espacios a ambos lados
+        key="$(printf '%s' "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        value="$(printf '%s' "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+        # Quitar comillas simples o dobles envolventes
+        value="${value%\"}"; value="${value#\"}"
+        value="${value%\'}"; value="${value#\'}"
+
+        # Validar clave
         [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
-        # Quitar posible comilla simple inicial/Final
-        value="${value#*=}"
-        value="${value%${value##*[![:space:]]}}"
-        value="${value%"$value"}"; value="$value"  # trim both sides
+
         MANIFEST["$key"]="$value"
-    done < <(grep -vE '^\s*(#|$)' "$file")
+    done < "$file"
 }
 ```
 
@@ -114,9 +134,9 @@ echo "RUNTIME: ${MANIFEST[RUNTIME]:-native}"
    ```bash
    VOLUMES=/data/apps/mail:/var/lib/mail:Z
    ```
-3. Podman **sólo** se instala si el manifiesta declara `RUNTIME=podman`. Vive en
-   el repo congelado de la ISO, no en el live base.
-4. En flash USB, un contenedor con COW rw es inviable: usar `--read-only` + volúmenes.
+3. Podman **sólo** se instala si el manifiesto declara `RUNTIME=podman`.
+4. En flash USB, un contenedor con COW rw es inviable: usar `--read-only` +
+   volúmenes.
 
 ## Sistemas de bases de datos soportados
 
@@ -125,8 +145,8 @@ echo "RUNTIME: ${MANIFEST[RUNTIME]:-native}"
 | Componente | Descripción |
 |---|---|
 | Motor | SQLite integrada o motor embebido sin servicio separado |
-| Uso | Aplicaciones ligeras, sin necesidad de servicio DB separado |
-| Ejemplo | `DATA_DIR=/data/app/db`, comando `sqlite3 /data/app/db/app.db` |
+| Uso | Aplicaciones ligeras, sin servicio DB separado |
+| Ejemplo | `DATA_DIR=/data/app/db`, `sqlite3 /data/app/db/app.db` |
 | Autonomía | ✅ los datos viajan dentro del appliance |
 | RAM | +0 MB (usando SQLite nativo) |
 
@@ -138,7 +158,7 @@ echo "RUNTIME: ${MANIFEST[RUNTIME]:-native}"
 | Requisito | `DATABASE_URL` debe contener la URL de conexión |
 | Red | Requiere LAN o acceso al server DB |
 | Autonomía | ❌ depende de su server externo |
-| RAM | +30–80 MB (dependiendo del motor) |
+| RAM | +30–80 MB |
 | URL example | `postgresql://user:pass@db.host:5432/dbname?sslmode=disable` |
 
 ### `DATABASE=none`
@@ -146,9 +166,8 @@ echo "RUNTIME: ${MANIFEST[RUNTIME]:-native}"
 | Componente | Descripción |
 |---|---|
 | Motor | Ninguno. La app no usa base de datos local. |
-| Uso | Aplicaciones frontend-only, APIs sin BD propia, gestores de archivos |
-| Ejemplo | Aplicaciones SPA (Single Page Application) con API externa |
-| Autonomía | ✅ totale, sin dependencias de BD |
+| Uso | Frontend-only, APIs sin BD propia, gestores de archivos |
+| Autonomía | ✅ total, sin dependencias de BD |
 
 ## Flujo de instalación de un payload
 
@@ -188,8 +207,8 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-> ⚠️ `WorkingDirectory=/opt/<app-slug>` (symlink sin espacios) — nunca la ruta original
-> con comillas: systemd no las quita y el servicio no arranca.
+> ⚠️ `WorkingDirectory=/opt/<app-slug>` (symlink sin espacios) — nunca la ruta
+> original con comillas: systemd no las quita y el servicio no arranca.
 
 ## Repositorio de payloads en este proyecto
 
@@ -199,15 +218,12 @@ apps/
     └── app.conf        # SOLO el manifiesto — el código NO está aquí
 ```
 
-El instalador (`installer/build.sh` y `installer/payload.sh`) lee el manifiesto,
-valida las claves y delega la materialización en el appliance.
-
 ## Validación
 
 | Check | Comando | Esperado |
 |---|---|---|
 | Manifiesto válido | `load-manifest.sh app.conf` | `MANIFEST[NAME]` set |
-| SOURCE es URL válida | `curl -I ${MANIFEST[SOURCE]}` | 200 OK |
+| SOURCE es URL válida | `curl -I "${MANIFEST[SOURCE]}"` | 200 OK |
 | RUNTIME soportado | `${MANIFEST[RUNTIME]:-native}` in `native nspawn podman` | válido |
 | DATA_DIR bajo /data | `${MANIFEST[DATA_DIR]}` empieza con `/data` | true |
 | Healthcheck define | `${MANIFEST[HEALTHCHECK]}` no vacío | URL o cmd |
@@ -216,9 +232,9 @@ valida las claves y delega la materialización en el appliance.
 
 | Si tocas... | Ve a |
 |---|---|
-| manifiesto + runtime + BD | `arch-frozen-repo` (para repos de packages frozen) |
-| materialización payload | `arch-appliance-img` (instalación en .img) |
-| runtime podman/nspawn | `arch-qemu-validation` (pruebas de arranque) |
-| integración desktop (L0-L6: Openbox/LXQT/XFCE/Cinnamon/KDE/GNOME) | `arch-desktop-layers` (capas gráficas) |
-| perfil + packages | `arch-iso-builder` (constructor de ISO) |
-| validación hardware | `arch-hardware-handler` (antes de escribir en disco) |
+| manifiesto + runtime + BD | `arch-frozen-repo` |
+| materialización payload | `arch-appliance-img` |
+| runtime podman/nspawn | `arch-qemu-validation` |
+| integración desktop (L0-L6) | `arch-desktop-layers` |
+| perfil + packages | `arch-iso-builder` |
+| validación hardware | `arch-hardware-handler` |
