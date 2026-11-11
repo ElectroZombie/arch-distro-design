@@ -5,6 +5,26 @@ All notable changes to **arch-distro-design** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Repository harness** — the project now carries the same five-subsystem
+  contract it teaches: instructions (`AGENTS.md`), state (`feature_list.json`,
+  `progress.md`), verification (`init.sh`, `scripts/validate-pack.mjs`), scope
+  (one feature at a time, dependencies tracked), and lifecycle
+  (`session-handoff.md`).
+- `scripts/validate-pack.mjs` — dependency-free structural verification:
+  frontmatter validity, frontmatter `name` matching its directory, `skills.sh.json`
+  ↔ disk consistency in both directions, English-only content, level-1 headings,
+  and README coverage.
+- `init.sh` — single startup and verification entrypoint that fails fast
+  (`set -e`) and prints the next steps.
+- `README.md` — new **Repository Harness** section documenting the five
+  subsystems, and an updated project structure tree.
+
+### Changed
+- The `Project Structure` tree in `README.md` now lists the harness files.
+
 ## [1.2.0] — 2026-11-11
 
 English edition and repository hygiene release.

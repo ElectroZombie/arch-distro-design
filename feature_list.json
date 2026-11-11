@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "updated": "2026-11-11",
+  "features": [
+    {
+      "id": "FEAT-001",
+      "name": "English edition",
+      "description": "Translate all nine skills, the pitfalls catalog, and the README from Spanish to English while preserving commands, paths, and frontmatter.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "All skills pass the English-only check in scripts/validate-pack.mjs."
+    },
+    {
+      "id": "FEAT-002",
+      "name": "Branch separation",
+      "description": "Split the project into github-free (v1.0.0 snapshot, English) and official-agensi (current project) and push both.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "Both branches pushed to origin; official-agensi is the local default."
+    },
+    {
+      "id": "FEAT-003",
+      "name": "Security hardening",
+      "description": "Remove weak root passwords, comment out the default [aur] repo, and guard destructive cleanup commands.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "Documented in CHANGELOG.md under 1.1.0."
+    },
+    {
+      "id": "FEAT-004",
+      "name": "Pitfalls catalog",
+      "description": "Maintain arch-archlinux-pitfalls as a living, dated catalog of real Arch/archiso failures.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "skills/arch-archlinux-pitfalls/SKILL.md contains 18 dated entries."
+    },
+    {
+      "id": "FEAT-005",
+      "name": "Agent operating harness",
+      "description": "Add AGENTS.md, feature_list.json, progress.md, session-handoff.md, init.sh, and a structural validator so coding agents can work on this repo reliably.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "Harness audit scored 100/100 across all five subsystems; ./init.sh passes 95 structural assertions."
+    },
+    {
+      "id": "FEAT-006",
+      "name": "CI validation workflow",
+      "description": "Add a GitHub Actions workflow that runs ./init.sh on every push and pull request.",
+      "status": "todo",
+      "dependencies": ["FEAT-005"]
+    },
+    {
+      "id": "FEAT-007",
+      "name": "Refresh Agensi release zip",
+      "description": "Rebuild arch-distro-design-agensi.zip from the current skills/ directory after the next content change.",
+      "status": "todo",
+      "dependencies": ["FEAT-005"]
+    },
+    {
+      "id": "FEAT-008",
+      "name": "Per-skill reference docs",
+      "description": "Add reference/ material to skills that currently rely on a single SKILL.md, starting with the pitfalls catalog.",
+      "status": "todo",
+      "dependencies": ["FEAT-005"]
+    }
+  ]
+}

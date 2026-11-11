@@ -126,6 +126,32 @@ Any agent that reads the `SKILL.md` convention works:
 
 ---
 
+## Repository Harness
+
+This repository is itself operated as a harness. Anyone — human or agent — who
+changes the pack follows the same five-subsystem contract, so work survives
+across sessions and never drifts out of scope.
+
+| Subsystem | Artifact | Purpose |
+| :--- | :--- | :--- |
+| **Instructions** | [`AGENTS.md`](./AGENTS.md) | Startup path, repo invariants, definition of done. |
+| **State** | [`feature_list.json`](./feature_list.json), [`progress.md`](./progress.md) | Current feature, status, evidence, next step. |
+| **Verification** | [`init.sh`](./init.sh), [`scripts/validate-pack.mjs`](./scripts/validate-pack.mjs) | Checks that must pass before claiming done. |
+| **Scope** | `feature_list.json` dependencies + `AGENTS.md` rules | One feature at a time; no unrequested scope. |
+| **Lifecycle** | [`session-handoff.md`](./session-handoff.md) | End-of-session routine that leaves the repo restartable. |
+
+Run the full verification before and after any change:
+
+```bash
+./init.sh
+```
+
+`init.sh` fails fast (`set -e`) and checks frontmatter, skill naming,
+`skills.sh.json` consistency, English-only content, and README coverage — 95
+assertions, zero external dependencies.
+
+---
+
 ## Mandatory Design Brief (7 Categories)
 
 No artifact is built without the user having explicitly decided:
@@ -177,6 +203,13 @@ arch-distro-design/
 │   ├── arch-qemu-validation/SKILL.md
 │   ├── arch-hardware-handler/SKILL.md
 │   └── arch-archlinux-pitfalls/SKILL.md
+├── scripts/
+│   └── validate-pack.mjs   # Dependency-free structural checks
+├── AGENTS.md               # Agent instructions, invariants, definition of done
+├── feature_list.json       # Feature state tracker (source of truth)
+├── progress.md             # Session continuity log
+├── session-handoff.md      # Handoff template for multi-session work
+├── init.sh                 # Startup and verification entrypoint
 ├── skills.sh.json          # Grouping metadata (skills.sh only; ignored by Agensi)
 ├── CHANGELOG.md
 ├── README.md
