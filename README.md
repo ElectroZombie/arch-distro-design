@@ -4,8 +4,10 @@
 
 > Where `archiso` gives you bricks, this gives you the architect, the building code, the inspection checklist, and the incident log.
 
+**Author on Agensi:** `electrozombie`
+
 **Also available on:**
-- **Agensi.io** — packaged skill pack, ready to drop into any agent. *[Replace with your listing URL]*
+- **Agensi.io** — packaged skill pack, ready to drop into any agent. *Creator: `electrozombie`*
 - **skills.sh** — indexed from this repository via `skills.sh.json`.
 
 ---
@@ -67,7 +69,7 @@ This harness exists to **prevent exactly those failure modes**. It encodes the d
 
 Agensi packages the nine skills as a single `.zip` you drop into your agent's skills directory.
 
-1. Visit the listing on [Agensi.io](https://agensi.io) — *[replace with your listing URL]*.
+1. Visit the listing on [Agensi.io](https://agensi.io) — *Creator: `electrozombie`, replace with your listing URL*.
 2. Purchase the pack (or grab the free `arch-distro-design` router skill to try it out).
 3. Download the `.zip` and extract:
 
@@ -229,7 +231,7 @@ It is **not** a replacement for `archiso`, `archuseriso`, or `nixos-generators`.
 ## Links
 
 - **Repository:** https://github.com/ElectroZombie/arch-distro-design
-- **Agensi listing:** *[replace with your listing URL]*
+- **Agensi listing:** *Creator: `electrozombie`, replace with your listing URL*
 - **skills.sh:** https://skills.sh *(search "arch-distro-design")*
 - **Issues:** https://github.com/ElectroZombie/arch-distro-design/issues
 - **Author:** ElectroZombie — `daphniphyllum901@gmail.com`
