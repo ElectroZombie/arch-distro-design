@@ -115,8 +115,8 @@ Cross-cutting rules:
 
 ### 2. Artifact contract
 
-Write (in `docs/`) the "what goes where" table. Without this contract, the ISO
-starts swallowing things that belong to the .img and vice versa.
+Write the "what goes where" table to `artifact-contract.md`. Without this
+contract, the ISO starts swallowing things that belong to the .img and vice versa.
 
 ### 3. Network and update policy (a decision that is expensive to get wrong)
 
@@ -159,8 +159,8 @@ Run before delegating. The script fails fast on the first missing item.
 ```bash
 set -euo pipefail
 
-BRIEF="docs/brief.md"                 # the completed Brief
-CONTRACT="docs/artifact-contract.md" # what goes where
+BRIEF="brief.md"                    # the completed Brief
+CONTRACT="artifact-contract.md"      # what goes where
 
 # 1. Every mandatory Brief category is answered
 for category in "Objective" "Output format" "Target hardware" "Network policy" \
@@ -224,10 +224,10 @@ echo "✅ Design brief and artifact contract verified"
 
 | State | Where it lives |
 |---|---|
-| The 7-category Brief | `docs/brief.md` |
-| Artifact contract ("what goes where") | `docs/artifact-contract.md` |
-| Layer decisions (L-1..L4) | `docs/brief.md` |
-| Validation plan | `docs/brief.md` |
+| The 7-category Brief | `brief.md` |
+| Artifact contract ("what goes where") | `artifact-contract.md` |
+| Layer decisions (L-1..L4) | `brief.md` |
+| Validation plan | `brief.md` |
 
 Record the evidence before delegating: the **command** you ran and its **output** (for example the `✅ Design brief and artifact contract verified` line). Without that evidence the design is not done.
 

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "updated": "2026-11-11",
+  "branch": "github-free",
+  "edition": "free",
+  "note": "This branch is the free edition: all nine skills, frozen at the pre-2.0.0 line. The maintained edition is tracked on the official-agensi branch and ships through Agensi.",
+  "features": [
+    {
+      "id": "FEAT-001",
+      "name": "English edition",
+      "description": "Translate all nine skills, the pitfalls catalog, and the README from Spanish to English while preserving commands, paths, and frontmatter.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "All skills pass the English-only check in harness/scripts/validate-pack.mjs."
+    },
+    {
+      "id": "FEAT-002",
+      "name": "Branch separation",
+      "description": "Split the project into github-free (the free edition) and official-agensi (the maintained, paid edition).",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "github-free is the only branch on GitHub; official-agensi is local only."
+    },
+    {
+      "id": "FEAT-003",
+      "name": "Security hardening",
+      "description": "Remove weak root passwords, comment out the default [aur] repo, and guard destructive cleanup commands.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "Documented in CHANGELOG.md under 1.1.0."
+    },
+    {
+      "id": "FEAT-004",
+      "name": "Pitfalls catalog",
+      "description": "Maintain arch-archlinux-pitfalls as a living, dated catalog of real Arch/archiso failures.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "skills/arch-archlinux-pitfalls/SKILL.md contains 18 dated entries."
+    },
+    {
+      "id": "FEAT-005",
+      "name": "Repository harness",
+      "description": "Add AGENTS.md, feature_list.json, progress.md, session-handoff.md, init.sh, and a structural validator so coding agents can work on this repo reliably.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "Harness audit scores 100/100 with --target harness; ./harness/init.sh passes 212 assertions."
+    },
+    {
+      "id": "FEAT-009",
+      "name": "Skill harness contract",
+      "description": "Apply the five-subsystem harness contract to all nine skills: Startup Workflow, Scope, Verification, Definition of Done, State & Evidence and Handoff, in a fixed order, enforced by the validator.",
+      "status": "done",
+      "dependencies": ["FEAT-005"],
+      "evidence": "All nine skills carry the six contract sections in order; the validator enforces presence, order and the fail-fast Verification block."
+    },
+    {
+      "id": "FEAT-013",
+      "name": "Harness folder",
+      "description": "Move the repository harness out of the repository root into harness/ so the root is a clean product surface, and propagate every path reference.",
+      "status": "done",
+      "dependencies": ["FEAT-005"],
+      "evidence": "AGENTS.md, feature_list.json, progress.md, session-handoff.md, init.sh and scripts/ now live in harness/; the root holds only product files."
+    },
+    {
+      "id": "FEAT-011",
+      "name": "Stale reference cleanup",
+      "description": "Remove references to files that do not exist in the pack (docs/09, docs/04, docs/08-LECCIONES-APRENDIDAS.md), replace the Agensi listing placeholders with the real URL, and gitignore the release zip.",
+      "status": "done",
+      "dependencies": [],
+      "evidence": "No references to docs/09, docs/04 or docs/08 remain; canonical state files are brief.md and artifact-contract.md; *.zip is gitignored."
+    }
+  ]
+}

@@ -10,9 +10,17 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// The pack to validate. `--target DIR` wins; otherwise the current directory.
+const argv = process.argv.slice(2);
+const targetIndex = argv.findIndex((arg) => arg === '--target' || arg.startsWith('--target='));
+const ROOT = (() => {
+  if (targetIndex === -1) return process.cwd();
+  const raw = argv[targetIndex];
+  if (raw.startsWith('--target=')) return path.resolve(raw.slice('--target='.length));
+  return path.resolve(argv[targetIndex + 1] || process.cwd());
+})();
+
 const SKILLS_DIR = path.join(ROOT, 'skills');
 const MANIFEST = path.join(ROOT, 'skills.sh.json');
 const README = path.join(ROOT, 'README.md');

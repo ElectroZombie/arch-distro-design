@@ -1,5 +1,10 @@
 # Local, unpublished working notes (listing copy, pricing strategy, etc.)
 docs/
 
+# Release artifacts — built from skills/, never committed
+*.zip
+
 # Editor / OS noise
 .DS_Store
+*.swp
+*.kate-swp

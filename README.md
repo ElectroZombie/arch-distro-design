@@ -4,11 +4,19 @@
 
 > Where `archiso` gives you bricks, this gives you the architect, the building code, the inspection checklist, and the incident log.
 
-**Author on Agensi:** `electrozombie`
+**Author on Agensi:** [`electrozombie`](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness)
+**Author on GitHub:** [`ElectroZombie`](https://github.com/ElectroZombie)
 
 **Also available on:**
-- **Agensi.io** — packaged skill pack, ready to drop into any agent. *Creator: `electrozombie`*
+- **Agensi.io** — the maintained pack, with 12 months of updates. *Creator: `electrozombie`*
 - **skills.sh** — indexed from this repository via `skills.sh.json`.
+
+> **This branch is the free edition.** It carries **all nine skills**, frozen at
+> the pre-2.0.0 line. It is a complete, working harness — but it is a
+> **snapshot**: it will not receive further updates. The maintained edition,
+> with every fix and every new pitfall entry, ships on
+> [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness).
+> See [`TIERS.md`](./TIERS.md).
 
 ---
 
@@ -65,46 +73,32 @@ This harness exists to **prevent exactly those failure modes**. It encodes the d
 
 ## Install
 
-### Option A — Via Agensi.io *(recommended for AI agents)*
+### Option A — From GitHub (this branch)
 
-Agensi packages the nine skills as a single `.zip` you drop into your agent's skills directory.
+```bash
+git clone --branch github-free https://github.com/ElectroZombie/arch-distro-design.git
+cp -r arch-distro-design/skills/* ~/.agents/skills/
+```
 
-1. Visit the listing on [Agensi.io](https://agensi.io) — *Creator: `electrozombie`, replace with your listing URL*.
-2. Purchase the pack (or grab the free `arch-distro-design` router skill to try it out).
-3. Download the `.zip` and extract:
+Or symlink it so `git pull` keeps it current:
 
-   ```bash
-   unzip arch-distro-design-agensi.zip -d /tmp/arch-distro-design
-   cp -r /tmp/arch-distro-design/skills/ ~/.agents/skills/
-   ```
-
-4. Restart your agent. The skills are now available.
-
-> **Note:** The Agensi pack does **not** include `skills.sh.json` — that file is only used by skills.sh for grouping. Agensi auto-detects a "skill pack" when it sees 2+ `SKILL.md` files.
+```bash
+ln -s "$(pwd)/arch-distro-design/skills" ~/.agents/skills/arch-distro-design
+ls ~/.agents/skills/arch-*
+```
 
 ### Option B — Via skills.sh
 
 skills.sh indexes this repository directly from GitHub:
 
 ```bash
-npx skills add ElectroZombie/arch-distro-design
+npx skills add electrozombie/arch-distro-design
 ```
 
-Or add individual skills by name from the [skills.sh catalog](https://skills.sh).
+### Option C — Via Agensi.io *(recommended if you want updates)*
 
-The `skills.sh.json` file at the repo root defines the 5-phase grouping (Design → Construction → Payload & Desktop → Validation → Knowledge Base) shown in the skills.sh UI.
-
-### Option C — Manual (from GitHub)
-
-Clone the repo and symlink the `skills/` folder:
-
-```bash
-git clone https://github.com/ElectroZombie/arch-distro-design.git
-ln -s "$(pwd)/arch-distro-design/skills" ~/.agents/skills/arch-distro-design
-ls ~/.agents/skills/arch-*
-```
-
-Symlinking (rather than copying) lets you pull updates with `git pull` without re-copying.
+The maintained pack, with 12 months of updates included — **$10**, one-time:
+[Arch Distro Design — ISO & Appliance Harness](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness).
 
 ---
 
@@ -126,27 +120,85 @@ Any agent that reads the `SKILL.md` convention works:
 
 ---
 
+## Editions
+
+The project ships in two editions. They share one codebase and one contract;
+they differ in **which version** you get and what comes with it afterwards.
+
+| Edition | Where | Price | Contents |
+| :--- | :--- | :--- | :--- |
+| **Free** | GitHub — [`github-free`](https://github.com/ElectroZombie/arch-distro-design/tree/github-free) branch | Free | **All nine skills**, frozen at the pre-2.0.0 snapshot |
+| **Full pack** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | **$10**, one-time | All nine skills, current version + 12 months of updates |
+
+The free edition is the **whole harness**, not a teaser: the nine skills are
+there and they work. What it does not include is what comes *after* — the
+2.0.0 line, and every fix, pitfall entry and archiso-compatibility update
+that lands with each release.
+
+See [`TIERS.md`](./TIERS.md) for the full comparison of what each edition
+includes and what the updates bring.
+
+---
+
+## Mandatory Design Brief (7 Categories)
+
+No artifact is built without the user having explicitly decided:
+
+1. **Objective** — server, kiosk, workstation, appliance…
+2. **Output format** — ISO live, persistent `.img`, or both.
+3. **Target hardware** — x86_64 UEFI/BIOS, USB, HDD, SSD, NVMe (validated by `arch-hardware-handler`).
+4. **Network policy** — `enabled` or `disabled` by default (admin can change later).
+5. **Apps/payloads** — declared by manifest, never vendorized.
+6. **Immutability** — squashfs ro, rw with rule, or overlay.
+7. **Updates policy** — how and when updates apply.
+
+---
+
+## Build Workflow
+
+1. Complete the mandatory Brief (`arch-distro-design`).
+2. Design with the decisions taken — never guessed.
+3. Validate empirically — mirror throughput, signatures, permissions.
+4. Document every real error in `arch-archlinux-pitfalls`.
+5. Build the artifact (`arch-iso-builder` / `arch-appliance-img` / `arch-frozen-repo`).
+6. Verify in QEMU via `arch-qemu-validation`.
+7. Validate physical hardware via `arch-hardware-handler` before touching real disks.
+
+---
+
+## Artifacts Produced
+
+- `out/*.iso` — bootable ISO (BIOS + UEFI) with squashfs rootfs.
+- `out/SHA256SUMS` — ISO checksums.
+- `out/appliance-*.img` — persistent appliance with EFI+SYS+DATA.
+- `builder/arch-profile/` — profile ready for `mkarchiso`.
+- `arch-repo/` — offline signed pacman repository (embedded in the ISO).
+- `out/versions.txt` — pinned package versions for rollback.
+
+---
+
 ## Repository Harness
 
 This repository is itself operated as a harness. Anyone — human or agent — who
 changes the pack follows the same five-subsystem contract, so work survives
-across sessions and never drifts out of scope.
+across sessions and never drifts out of scope. The harness lives in
+`harness/`, keeping the repository root a clean product surface.
 
 | Subsystem | Artifact | Purpose |
 | :--- | :--- | :--- |
-| **Instructions** | [`AGENTS.md`](./AGENTS.md) | Startup path, repo invariants, definition of done. |
-| **State** | [`feature_list.json`](./feature_list.json), [`progress.md`](./progress.md) | Current feature, status, evidence, next step. |
-| **Verification** | [`init.sh`](./init.sh), [`scripts/validate-pack.mjs`](./scripts/validate-pack.mjs) | Checks that must pass before claiming done. |
-| **Scope** | `feature_list.json` dependencies + `AGENTS.md` rules | One feature at a time; no unrequested scope. |
-| **Lifecycle** | [`session-handoff.md`](./session-handoff.md) | End-of-session routine that leaves the repo restartable. |
+| **Instructions** | [`harness/AGENTS.md`](./harness/AGENTS.md) | Startup path, repo invariants, definition of done. |
+| **State** | [`harness/feature_list.json`](./harness/feature_list.json), [`harness/progress.md`](./harness/progress.md) | Current feature, status, evidence, next step. |
+| **Verification** | [`harness/init.sh`](./harness/init.sh), [`harness/scripts/validate-pack.mjs`](./harness/scripts/validate-pack.mjs) | Checks that must pass before claiming done. |
+| **Scope** | `harness/feature_list.json` dependencies + `harness/AGENTS.md` rules | One feature at a time; no unrequested scope. |
+| **Lifecycle** | [`harness/session-handoff.md`](./harness/session-handoff.md) | End-of-session routine that leaves the repo restartable. |
 
 Run the full verification before and after any change:
 
 ```bash
-./init.sh
+./harness/init.sh
 ```
 
-`init.sh` fails fast (`set -e`) and checks frontmatter, skill naming,
+`harness/init.sh` fails fast (`set -e`) and checks frontmatter, skill naming,
 `skills.sh.json` consistency, English-only content, README coverage, and the
 skill contract below — 212 assertions, zero external dependencies.
 
@@ -164,45 +216,8 @@ so an agent enters, scopes, verifies, closes and resumes them identically:
 | `## State & Evidence` | Where the state lives and what evidence to record. |
 | `## Handoff` | Which skill runs next, and when. |
 
-`./init.sh` fails if a skill is missing one of them, if they are out of order,
-or if the `Verification` block is not a fail-fast script.
-
----
-
-## Mandatory Design Brief (7 Categories)
-
-No artifact is built without the user having explicitly decided:
-
-1. **Objective** — server, kiosk, workstation, appliance…
-2. **Output format** — live ISO, persistent `.img`, or both.
-3. **Target hardware** — x86_64 UEFI/BIOS, USB, HDD, SSD, NVMe (validated by `arch-hardware-handler`).
-4. **Network policy** — `enabled` or `disabled` by default (admin can change later).
-5. **Apps/payloads** — declared by manifest, never vendorized.
-6. **Immutability** — squashfs ro, rw with rule, or overlay.
-7. **Updates policy** — how and when updates apply.
-
----
-
-## Build Workflow
-
-1. **Complete the mandatory Brief** (`arch-distro-design`).
-2. **Design** with the decisions taken — never guessed.
-3. **Validate empirically** — mirror throughput, signatures, permissions.
-4. **Document every real error** in `arch-archlinux-pitfalls`.
-5. **Build the artifact** (`arch-iso-builder` / `arch-appliance-img` / `arch-frozen-repo`).
-6. **Verify in QEMU** via `arch-qemu-validation`.
-7. **Validate physical hardware** via `arch-hardware-handler` before touching real disks.
-
----
-
-## Artifacts Produced
-
-- `out/*.iso` — bootable ISO (BIOS + UEFI) with squashfs rootfs.
-- `out/SHA256SUMS` — ISO checksums.
-- `out/appliance-*.img` — persistent appliance with EFI + SYS + DATA.
-- `builder/arch-profile/` — profile ready for `mkarchiso`.
-- `arch-repo/` — offline signed pacman repository (embedded in the ISO).
-- `out/versions.txt` — pinned package versions for rollback.
+`./harness/init.sh` fails if a skill is missing one of them, if they are out of
+order, or if the `Verification` block is not a fail-fast script.
 
 ---
 
@@ -220,14 +235,16 @@ arch-distro-design/
 │   ├── arch-qemu-validation/SKILL.md
 │   ├── arch-hardware-handler/SKILL.md
 │   └── arch-archlinux-pitfalls/SKILL.md
-├── scripts/
-│   └── validate-pack.mjs   # Dependency-free structural checks
-├── AGENTS.md               # Agent instructions, invariants, definition of done
-├── feature_list.json       # Feature state tracker (source of truth)
-├── progress.md             # Session continuity log
-├── session-handoff.md      # Handoff template for multi-session work
-├── init.sh                 # Startup and verification entrypoint
+├── harness/
+│   ├── AGENTS.md               # Agent instructions, invariants, definition of done
+│   ├── feature_list.json       # Feature state tracker (source of truth)
+│   ├── progress.md             # Session continuity log
+│   ├── session-handoff.md      # Handoff template for multi-session work
+│   ├── init.sh                 # Startup and verification entrypoint
+│   └── scripts/
+│       └── validate-pack.mjs   # Dependency-free structural checks
 ├── skills.sh.json          # Grouping metadata (skills.sh only; ignored by Agensi)
+├── TIERS.md                # Free vs paid editions
 ├── CHANGELOG.md
 ├── README.md
 └── LICENSE
@@ -237,10 +254,9 @@ arch-distro-design/
 
 ## Versioning & Updates
 
-- **Current version:** `1.2.0` (English edition, security-audited).
-- **Semantic versioning:** MAJOR for breaking skill-interface changes; MINOR for new skills or new pitfalls entries; PATCH for typos and doc fixes.
-- **Agensi buyers:** 12 months of updates included from purchase date. Updates are delivered automatically through the Agensi platform.
-- **skills.sh / GitHub users:** `git pull` gets you everything.
+- **This branch:** frozen at the pre-2.0.0 line. It will not receive further updates.
+- **Maintained edition:** 2.0.0 and every release after it, with 12 months of updates included ([Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness)).
+- **Semantic versioning:** MAJOR for breaking skill-interface changes (renamed or removed contract sections); MINOR for new skills, new contract sections or new pitfalls entries; PATCH for typos and doc fixes.
 
 See [`CHANGELOG.md`](./CHANGELOG.md) for the full history.
 
@@ -264,24 +280,11 @@ No SLA for custom builds, but substantive questions usually get answered quickly
 
 ---
 
-## About
-
-**arch-distro-design** is an open AI-agent harness for building Arch Linux ISOs and persistent `.img` appliances with the discipline of a real engineering process. It consists of nine interconnected skills that cover the full lifecycle: a mandatory design Brief, ISO and `.img` construction, an offline frozen package repository, manifest-driven app payloads, seven desktop layers from console-only to GNOME/KDE, QEMU and hardware validation gates, and a living catalog of real Arch pitfalls.
-
-The project's thesis is simple. Building an Arch-based distribution is a long chain of fragile, order-dependent steps that fail silently and expensively. A naive agent — or a hurried human — will produce a technically valid artifact that misses the real objective, hit the `community` 404 or the `DisableDownloadTimeout` parser error, repartition the wrong disk, or corrupt a USB stick by force-killing QEMU mid-write. This harness exists to prevent exactly those failures by encoding decisions, safety checks, and hard-won empirical lessons as mandatory gates.
-
-It is **not** a replacement for `archiso`, `archuseriso`, or `nixos-generators`. It is the orchestration and governance layer that sits on top of them. The closest functional competitor is `archuseriso`; the closest paradigm competitor is `nixos-generators`. Neither governs the design and validation process the way this system does.
-
-**Built for:** AI agents that must build Arch appliances without supervision, engineers who want a governed reproducible process, and operators deploying single-purpose offline devices.
-
-**Not for:** users who just want a quick custom ISO — for that, `archiso` and `archuseriso` are more direct.
-
----
-
 ## Links
 
 - **Repository:** https://github.com/ElectroZombie/arch-distro-design
-- **Agensi listing:** *Creator: `electrozombie`, replace with your listing URL*
+- **Free edition:** [`github-free` branch](https://github.com/ElectroZombie/arch-distro-design/tree/github-free)
+- **Agensi listing:** [Arch Distro Design — ISO & Appliance Harness](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) *(creator: `electrozombie`)*
 - **skills.sh:** https://skills.sh *(search "arch-distro-design")*
 - **Issues:** https://github.com/ElectroZombie/arch-distro-design/issues
 - **Author:** ElectroZombie — `daphniphyllum901@gmail.com`

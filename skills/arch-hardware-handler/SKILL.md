@@ -217,7 +217,7 @@ echo "✅ Target device validated"
 |---|---|
 | USB model + capacity | `hardware-log.txt` in the project repo |
 | ISO/.img checksum | `SHA256SUMS` (already committed) |
-| `sync` success/failure | Comment in `docs/08-LECCIONES-APRENDIDAS.md` |
+| `sync` success/failure | Entry in `hardware-log.txt` |
 | Incompatible hardware | Tag in the `git commit`: `hardware::incompatible` |
 
 Record the evidence: the **command** you ran and its **output** — the `✅ Target device validated` line, the `parted` table after the write, and the boot result.

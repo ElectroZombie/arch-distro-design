@@ -52,7 +52,7 @@ for the 7 categories.
 
 | Check | Requirement |
 |---|---|
-| `brief_completed` | All 7 categories must be signed off in `docs/09` |
+| `brief_completed` | All 7 categories must be signed off in `brief.md` |
 | `objective_defined` | The system objective must be clear |
 | `output_format` | Live ISO, persistent .img, or both |
 | `hardware_identified` | UEFI/BIOS/USB/SSD/NVMe |
@@ -262,7 +262,7 @@ paths do not exist.
 | The **last** `console=` receives `/dev/console` | `console=tty0 console=ttyS0,115200n8` (serial last) |
 | Long serial syntax in GRUB 2.12 | `serial --unit=0 --speed=115200 --word=8 --parity=no --stop=1` |
 | Never `mkfs`/`parted` without reviewing the target disk | `build.sh` with double confirmation and guards |
-| Always `e2fsck` before `resize2fs` | Resize script in docs/04 |
+| Always `e2fsck` before `resize2fs` | Resize script in the project repo |
 | Shut QEMU down gracefully (`system_powerdown`) | QEMU validation script with clean shutdown |
 | SDDM hung → no display manager | Openbox + tint2 + autologin on tty1 |
 | systemd `WorkingDirectory=` does **not** strip quotes | Paths without spaces (symlink) |

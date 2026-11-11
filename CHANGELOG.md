@@ -1,26 +1,36 @@
 # Changelog
 
+> **This branch (`github-free`) is the free edition**, frozen at **1.3.0**.
+> It carries all nine skills and will not receive further updates. The
+> maintained edition starts at **2.0.0** and ships through
+> [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness).
+
 All notable changes to **arch-distro-design** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] — 2026-11-11
+
+The last release of the 1.x line, and what the free edition ships: the nine
+skills with the shared harness contract, plus the repository harness.
 
 ### Added
 - **Repository harness** — the project now carries the same five-subsystem
-  contract it teaches: instructions (`AGENTS.md`), state (`feature_list.json`,
-  `progress.md`), verification (`init.sh`, `scripts/validate-pack.mjs`), scope
-  (one feature at a time, dependencies tracked), and lifecycle
-  (`session-handoff.md`).
-- `scripts/validate-pack.mjs` — dependency-free structural verification:
+  contract it teaches: instructions (`harness/AGENTS.md`), state
+  (`harness/feature_list.json`, `harness/progress.md`), verification
+  (`harness/init.sh`, `harness/scripts/validate-pack.mjs`), scope (one feature
+  at a time, dependencies tracked), and lifecycle
+  (`harness/session-handoff.md`).
+- `harness/scripts/validate-pack.mjs` — dependency-free structural verification:
   frontmatter validity, frontmatter `name` matching its directory, `skills.sh.json`
   ↔ disk consistency in both directions, English-only content, level-1 headings,
   and README coverage.
-- `init.sh` — single startup and verification entrypoint that fails fast
+- `harness/init.sh` — single startup and verification entrypoint that fails fast
   (`set -e`) and prints the next steps.
 - `README.md` — new **Repository Harness** section documenting the five
   subsystems, and an updated project structure tree.
+- `TIERS.md` — the free vs paid edition comparison.
 
 ### Changed
 - **All nine skills now follow the same harness contract.** Each `SKILL.md` gained
@@ -39,10 +49,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `arch-archlinux-pitfalls`: gained the full contract plus a verification
   script that checks the catalog is complete and still carries the classic
   failures.
-- `scripts/validate-pack.mjs` now enforces the skill contract: the six
+- `harness/scripts/validate-pack.mjs` now enforces the skill contract: the six
   sections must be present, ordered, and the `Verification` block must be a
   fail-fast bash script with a success marker. Assertions grew from 95 to 212.
 - The `Project Structure` tree in `README.md` now lists the harness files.
+- The author line carries both handles: Agensi and GitHub.
+
+### Fixed
+- Removed references to files that do not exist in the pack: `docs/09`,
+  `docs/04` and `docs/08-LECCIONES-APRENDIDAS.md`. The canonical state files
+  are now `brief.md` and `artifact-contract.md` at the project root, and the
+  hardware trail lives in `hardware-log.txt`.
+- Replaced the `replace with your listing URL` placeholders in `README.md` with
+  the real Agensi listing.
+
+### Moved
+- **The repository harness left the repository root** and now lives in
+  `harness/`. The root is now a clean product surface — `skills/`,
+  `skills.sh.json`, `TIERS.md`, `README.md`, `CHANGELOG.md`, `LICENSE`.
+- `harness/init.sh` now resolves the repository root itself, so it runs the
+  same from any working directory.
 
 ## [1.2.0] — 2026-11-11
 
