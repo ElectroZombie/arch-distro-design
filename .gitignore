@@ -1,5 +1,8 @@
 # Local, unpublished working notes (listing copy, pricing strategy, etc.)
 docs/
 
+# Release artifacts (built for Agensi, not published on GitHub)
+*.zip
+
 # Editor / OS noise
 .DS_Store
