@@ -72,6 +72,18 @@ skills with the shared harness contract, plus the repository harness.
 - `harness/init.sh` now resolves the repository root itself, so it runs the
   same from any working directory.
 
+## [1.3.3] — 2026-11-12
+
+### Fixed
+- **The pack zip now has one top-level folder.** It put the nine skill folders
+  at the root, so it failed the zip-structure check that every other package
+  passes. It now wraps them in one folder named after the pack, exactly like
+  the single-skill packages.
+
+### Added
+- `dist/SHA256SUMS` — the manifest of the built packages, so an upload can be
+  verified later with `sha256sum -c SHA256SUMS`.
+
 ## [1.3.2] — 2026-11-12
 
 Protocol compliance: the pack is checked against the published Agensi

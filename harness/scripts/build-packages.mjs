@@ -162,7 +162,12 @@ for (const skill of skillDirs) {
   writePackage(`${skill}.zip`, entries, skill);
 }
 
-const packEntries = skillDirs.flatMap((skill) => collect(path.join(SKILLS_DIR, skill), `${skill}/`));
+// The pack is a single top-level folder (the pack name) holding the nine
+// skill folders — the same shape as a one-skill package, so the zip-structure
+// check passes, with 9 SKILL.md files inside for the pack detection.
+const packEntries = skillDirs.flatMap((skill) =>
+  collect(path.join(SKILLS_DIR, skill), `${PACK_NAME}/${skill}/`)
+);
 writePackage(`${PACK_NAME}-pack.zip`, packEntries, `${PACK_NAME} (${skillDirs.length} skills)`);
 
 // --- report --------------------------------------------------------------------
@@ -174,7 +179,16 @@ for (const item of written) {
     `  ${item.fileName.padEnd(36)} ${String(item.entries).padStart(7)} ${`${(item.bytes / 1024).toFixed(1)} KB`.padStart(8)}   ${item.sha.slice(0, 16)}…`
   );
 }
-console.log(`\n  output: ${path.relative(ROOT, OUT_DIR)}/\n`);
+
+// A manifest next to the packages, so an upload can be verified later with
+// `sha256sum -c SHA256SUMS` in this directory.
+writeFileSync(
+  path.join(OUT_DIR, 'SHA256SUMS'),
+  `${written.map((item) => `${item.sha}  ${item.fileName}`).join('\n')}\n`
+);
+
+console.log(`\n  output: ${path.relative(ROOT, OUT_DIR)}/`);
+console.log('  verify: cd ' + path.relative(ROOT, OUT_DIR) + ' && sha256sum -c SHA256SUMS\n');
 
 if (problems.length > 0) {
   console.log('Problems:');
