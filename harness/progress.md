@@ -44,6 +44,14 @@
   project root, and the hardware trail is `hardware-log.txt`.
 - Replaced the listing placeholders with the real Agensi URL and added the
   GitHub handle.
+- **Checked the pack against the Agensi protocols** (SKILL.md format spec,
+  creator checklist, 8-point security scan) and fixed what it found:
+  every description now carries 3-5 trigger phrases, every skill states its
+  output format, the six skills that touch the system declare their
+  permissions, credentials moved to environment variables, every skill ships a
+  supporting file, and `harness/scripts/build-packages.mjs` builds the ten
+  upload packages with the structure the scan requires. The stale root zip is
+  gone; `dist/` is gitignored and regenerated.
 
 ## Next
 

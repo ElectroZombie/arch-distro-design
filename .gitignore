@@ -8,3 +8,6 @@ docs/
 .DS_Store
 *.swp
 *.kate-swp
+
+# Built upload packages (harness/scripts/build-packages.mjs)
+dist/

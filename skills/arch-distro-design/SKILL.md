@@ -107,6 +107,10 @@ Cross-cutting rules:
 
 ### 1. Brief (questions for the user — do NOT guess)
 
+> A fill-in template for the whole Brief, the artifact contract and the
+> derived decisions is in `references/brief-template.md`. Copy it, fill it in,
+> and save it as `brief.md`.
+
 | Question | Why it matters |
 |---|---|
 | Live ISO, persistent .img, or both? | Determines the main skill |
@@ -232,6 +236,8 @@ and produces — use it to check that no step is missing or inverted.
 - Step 9 is continuous, not a phase.
 
 ## Definition of Done
+
+**Output:** a routing decision (which artifact, which skills, in which order), `brief.md` and `artifact-contract.md`.
 
 - [ ] Brief answered by the user (not guessed).
 - [ ] Main artifact identified (ISO / .img / both).

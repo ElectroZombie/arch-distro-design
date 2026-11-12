@@ -39,6 +39,13 @@ case "$RUNTIME" in
     *) die "unsupported RUNTIME: $RUNTIME" ;;
 esac
 
+# The source must be an https URL: the payload is pulled from the app's own
+# repo at install time and never from an unauthenticated endpoint.
+case "${MANIFEST[SOURCE]}" in
+    https://*) ;;
+    *) die "SOURCE must be an https URL (got: ${MANIFEST[SOURCE]})" ;;
+esac
+
 DATABASE="${MANIFEST[DATABASE]:-none}"
 if [[ "$DATABASE" == "external" ]]; then
     [[ -n "${MANIFEST[DATABASE_URL]:-}" ]] || die "DATABASE=external requires DATABASE_URL"
@@ -56,6 +63,7 @@ UNIT="app-$SLUG.service"
 
 # --- materialize -------------------------------------------------------------
 echo "==> Materializing ${MANIFEST[NAME]} (${MANIFEST[VERSION]})"
+echo "    source: ${MANIFEST[SOURCE]} (ref: ${MANIFEST[SOURCE_REF]:-main})"
 mkdir -p "$DATA_DIR" "$APP_DIR"
 
 if [[ -d "$SRC_DIR/.git" ]]; then

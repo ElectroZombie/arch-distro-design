@@ -1,6 +1,6 @@
 ---
 name: arch-hardware-handler
-description: 'Handles direct Arch Linux hardware interactions: USB writing, disk partitioning verification, hardware compatibility checks, and safe read/write operations. Prevents the "error -71" and data-loss issues from the Lubuntu cycle. Use before writing any .iso/.img to physical media.'
+description: 'Handles direct Arch Linux hardware interactions: USB writing, partition verification, hardware compatibility checks and safe read/write operations, preventing the "error -71" hangs and the data loss of the Lubuntu cycle. Use when the user asks to "write the ISO to the USB", "flash the image to a drive", "check if this hardware works", "verify the partitions on the disk" or "burn the appliance to media".'
 ---
 
 # Arch Hardware Handler — Direct Hardware Interaction
@@ -200,7 +200,20 @@ echo "✅ Target device validated"
 | Space on the destination disk | `df -h <destination_directory>` | Enough space |
 | Not writing to the host disk | `lsblk -o NAME,SIZE,MODEL` | Different from host `/dev/sda` |
 
+## Permissions and safety
+
+| | |
+|---|---|
+| **Reads** | the artifact, the target device, the host mount table and the USB's own descriptors |
+| **Writes** | **only** the device passed on the command line, and `hardware-log.txt` in the project |
+| **Requires root** | yes — `dd` to a raw device needs it |
+| **Refuses** | the host root disk, a mounted device, and a write without the checksum matching `SHA256SUMS` |
+| **Network** | none |
+| **Never** | `kill -9`s QEMU or a write process, and never removes the media before three `sync` calls |
+
 ## Definition of Done
+
+**Output:** the written media, the `✅ Target device validated` line, and the USB model and capacity recorded in `hardware-log.txt`.
 
 - [ ] Target device identified with `lsblk` and confirmed **not** to be the host root disk.
 - [ ] Artifact checksum verified with `sha256sum -c SHA256SUMS`.
@@ -246,6 +259,9 @@ Record the evidence: the **command** you ran and its **output** — the `✅ Tar
 | `root=UUID=` not found | Old GRUB, stale PARTUUID | `grub-mkconfig` after partitioning |
 
 ## Hardware operations checklist (paste in the work area)
+
+> The checklist, the three write guards and the compatibility matrix are in
+> `references/hardware-checklist.md`.
 
 ```text
 === ARCH HARDWARE CHECKLIST ===

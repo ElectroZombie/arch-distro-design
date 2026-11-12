@@ -1,6 +1,6 @@
 ---
 name: arch-appliance-img
-description: 'Build persistent Arch .img appliances with EFI+SYS+DATA partitions. Handles GPT partitioning, pacstrap installation, systemd services, and makes the DATA partition portable across machines. Use when the user wants a persistent .img (not a live ISO) or needs a portable DATA partition.'
+description: 'Build persistent Arch .img appliances with EFI+SYS+DATA partitions: GPT partitioning, pacstrap installation, systemd services and a DATA partition portable across machines. Use when the user asks to "build an appliance", "create a persistent .img", "make a disk image for a kiosk", "set up EFI+SYS+DATA" or "install Arch onto a disk image".'
 ---
 
 # Arch Appliance Image Builder — General Purpose
@@ -75,6 +75,9 @@ Before writing to any physical disk or creating .imgs, go through the
 
 ## Partitioning parameters (size rule)
 
+> The full scheme, the size bands and the exact `parted` sequence are in
+> `references/partition-table.md`.
+
 | Disk size | Partition | Size | Type | Mount |
 |---|---|---|---|---|
 | **< 8 GB** | ❌ Reject | Disk too small for the model | | |
@@ -100,7 +103,7 @@ Before writing to any physical disk or creating .imgs, go through the
 
 ### 1. `build.sh` CLI (mandatory parameters)
 
-The script ships as an **asset** of this skill — `assets/build.sh` — and the
+The script ships with this skill — `scripts/build.sh` — and the
 ISO carries it at `/installer/build.sh`, so the operator can build the `.img`
 straight from the live session.
 
@@ -126,7 +129,7 @@ The asset implements exactly these steps and guards. Install it into the
 project (or into the ISO overlay, see `arch-iso-builder`):
 
 ```bash
-install -Dm755 skills/arch-appliance-img/assets/build.sh ./build.sh
+install -Dm755 skills/arch-appliance-img/scripts/build.sh ./build.sh
 ./build.sh --disk /path/to/appliance.img --profile builder/arch-profile --dry-run
 ```
 
@@ -298,7 +301,20 @@ echo "✅ Partition layout verified"
 > **10** validates the "internet disabled by default" policy.
 > **11** validates the "DATA mountable on another machine" requirement.
 
+## Permissions and safety
+
+| | |
+|---|---|
+| **Reads** | the target device, the profile directory, the host mount table (`findmnt /`) |
+| **Writes** | **only** the device passed to `--disk`, `/mnt` while it is mounted, and the profile directory |
+| **Requires root** | yes — `mkfs`, `parted`, `pacstrap` and `grub-install` need it |
+| **Refuses** | the host root disk, any primary host disk, targets under 8 GB, an incomplete profile, and any write without an explicit confirmation |
+| **Network** | only the Arch mirrors named in the profile's `pacman.conf`, with signature verification on |
+| **Never** | formats or partitions a device that was not named on the command line, and never writes with `--yes` unattended without an explicit `--dry-run` first |
+
 ## Definition of Done
+
+**Output:** `out/appliance-*.img` with the EFI+SYS+DATA layout, plus the `✅ Partition layout verified` line as evidence.
 
 - [ ] Brief completed with all 7 categories before starting.
 - [ ] Target disk identified with `lsblk` and confirmed **not** to be the host's `/dev/sda`.

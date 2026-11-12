@@ -108,6 +108,23 @@ for (const dir of skillDirs) {
     check(Boolean(fm.name), `skills/${dir}/SKILL.md declares a name`);
     check(Boolean(fm.description), `skills/${dir}/SKILL.md declares a description`);
     check(fm.name === dir, `skills/${dir}/SKILL.md name matches its directory`);
+
+    // The SKILL.md spec: the name is a slug (lowercase, digits, hyphens) and
+    // the description is 1-3 sentences with 3-5 trigger phrases — the Agensi
+    // pre-publish checklist requires the triggers, they are what makes the
+    // skill activate.
+    check(/^[a-z0-9-]+$/.test(fm.name ?? ''), `skills/${dir}/SKILL.md name is a valid slug`);
+    const sentences = (fm.description ?? '').split(/(?<=[.!?])\s+(?=[A-Z])/).length;
+    check(sentences >= 1 && sentences <= 3, `skills/${dir}/SKILL.md description is 1-3 sentences (${sentences})`);
+    // The trigger phrases are the quoted strings in the "Use when ..." part of
+    // the description — other quoted words (an error name, a command) do not
+    // count as triggers.
+    const triggerPart = (fm.description ?? '').split(/use when/i)[1] ?? '';
+    const triggers = triggerPart.match(/"[^"]+"/g) ?? [];
+    check(
+      triggers.length >= 3 && triggers.length <= 5,
+      `skills/${dir}/SKILL.md description carries 3-5 trigger phrases (${triggers.length})`
+    );
   }
   check(/^#\s+\S/m.test(content), `skills/${dir}/SKILL.md has a level-1 heading`);
   check(!/[áéíóúñ¿¡ÁÉÍÓÚÑ]/.test(content), `skills/${dir}/SKILL.md contains no Spanish accents`);
@@ -179,19 +196,28 @@ const NOT_SKILLS = new Set([
   'arch-repo'               // the frozen repo directory
 ]);
 
-// Collect every asset that ships in the pack, keyed as `assets/<path>`.
-const packAssets = new Set();
+// Collect every supporting file that ships in the pack (scripts/, assets/,
+// references/), keyed as `<folder>/<path>` — the SKILL.md convention.
+const SUPPORT_DIRS = ['scripts', 'assets', 'references'];
+const packSupporting = new Set();
+const supportingFiles = [];
+
 for (const dir of skillDirs) {
-  const assetsDir = path.join(SKILLS_DIR, dir, 'assets');
-  if (!existsSync(assetsDir)) continue;
-  const walk = (current, prefix) => {
-    for (const entry of readdirSync(current, { withFileTypes: true })) {
-      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) walk(path.join(current, entry.name), rel);
-      else if (entry.isFile()) packAssets.add(`assets/${rel}`);
-    }
-  };
-  walk(assetsDir, '');
+  for (const support of SUPPORT_DIRS) {
+    const supportDir = path.join(SKILLS_DIR, dir, support);
+    if (!existsSync(supportDir)) continue;
+    const walk = (current, prefix) => {
+      for (const entry of readdirSync(current, { withFileTypes: true })) {
+        const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) walk(path.join(current, entry.name), rel);
+        else if (entry.isFile()) {
+          packSupporting.add(`${support}/${rel}`);
+          supportingFiles.push({ skill: dir, path: `${support}/${rel}` });
+        }
+      }
+    };
+    walk(supportDir, '');
+  }
 }
 
 for (const dir of skillDirs) {
@@ -205,21 +231,31 @@ for (const dir of skillDirs) {
     check(existsSync(path.join(SKILLS_DIR, ref)), `skills/${dir} references an existing skill: ${ref}`);
   }
 
-  const assetRefs = new Set(content.match(/assets\/[A-Za-z0-9._/-]+/g) || []);
-  for (const ref of assetRefs) {
+  // Repo-relative references: skills/<skill>/scripts/<file>
+  const repoRefs = new Set(
+    content.match(/skills\/[a-z0-9-]+\/(?:scripts|assets|references)\/[A-Za-z0-9._/-]+/g) || []
+  );
+  for (const ref of repoRefs) {
     const clean = ref.replace(/[.,)]+$/, '');
-    check(packAssets.has(clean), `skills/${dir} references an asset that ships in the pack: ${clean}`);
+    check(existsSync(path.join(ROOT, clean)), `skills/${dir} references an existing file: ${clean}`);
+  }
+
+  // Skill-relative references: scripts/<file>
+  const localRefs = new Set(
+    content.match(/(?<![\w/.-])(?:scripts|assets|references)\/[A-Za-z0-9._/-]+/g) || []
+  );
+  for (const ref of localRefs) {
+    const clean = ref.replace(/[.,)]+$/, '');
+    const local = existsSync(path.join(SKILLS_DIR, dir, clean));
+    check(local || packSupporting.has(clean), `skills/${dir} references a supporting file that ships: ${clean}`);
   }
 }
 
-// Every asset that ships must be reachable from some skill.
-for (const asset of packAssets) {
-  const owner = asset.split('/')[1];
-  const referenced = skillDirs.some((dir) => {
-    const file = path.join(SKILLS_DIR, dir, 'SKILL.md');
-    return existsSync(file) && read(file).includes(asset);
-  });
-  check(referenced, `asset ${asset} is referenced by a skill (owner: ${owner})`);
+// Every supporting file that ships must be reachable from some skill.
+for (const { skill, path: file } of supportingFiles) {
+  const skillFile = path.join(SKILLS_DIR, skill, 'SKILL.md');
+  const referenced = existsSync(skillFile) && read(skillFile).includes(file);
+  check(referenced, `supporting file ${file} is referenced by ${skill}`);
 }
 
 // --- Manifest <-> disk consistency -------------------------------------------

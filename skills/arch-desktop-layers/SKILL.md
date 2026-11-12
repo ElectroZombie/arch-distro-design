@@ -1,6 +1,6 @@
 ---
 name: arch-desktop-layers
-description: 'General desktop layer definitions for Arch Linux live ISOs and appliances. Covers window managers, desktop environments (L0 console-only through L6 GNOME), panel configurations, and display manager options. Use when choosing the graphical stack for an ISO or appliance.'
+description: 'Define the desktop layer for an Arch ISO or appliance: L0 console-only through L6 GNOME, with the window managers, desktop environments, panel configurations and display-manager options of each layer. Use when the user asks to "choose a desktop", "add a GUI to the ISO", "set up Openbox, KDE, GNOME or XFCE", "configure a kiosk desktop" or "make it console-only".'
 ---
 
 # Arch Desktop Layers — General Purpose
@@ -45,6 +45,9 @@ heavier.
 | Boot tests in QEMU | `arch-qemu-validation` |
 
 ## Available desktop layers
+
+> The full package matrix of every layer, with the session starter and the
+> panel configuration, is in `references/layer-matrix.md`.
 
 ### L0 — Console-only (no graphical interface)
 
@@ -212,6 +215,8 @@ pgrep -a mutter                           # L6
 ```
 
 ## Definition of Done
+
+**Output:** the chosen `desktop_layer`, the layer's package set in `packages.x86_64`, and the session starter in `.xinitrc`.
 
 - [ ] Layer chosen (L0..L6) and written in `profiledef.sh:desktop_layer`
 - [ ] Layer packages uncommented in `packages.x86_64`

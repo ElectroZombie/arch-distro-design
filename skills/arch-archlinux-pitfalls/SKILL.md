@@ -1,6 +1,6 @@
 ---
 name: arch-archlinux-pitfalls
-description: 'Living catalog of real errors encountered while building Arch Linux ISOs and appliances. Serves as the empirical memory of the skill group. Consulted before every build to avoid repeating known failures (community 404, DisableDownloadTimeout, error -71, SDDM hangs, etc.).'
+description: 'Living catalog of the real errors hit while building Arch Linux ISOs and appliances, each with its cause and its fix: community.db 404, realpath aborts, DisableDownloadTimeout, error -71, SDDM hangs and more. Use when the user asks "why did this fail", "what went wrong with mkarchiso", "consult the known Arch pitfalls", "the build broke with X" or "how do I fix this Arch error".'
 ---
 
 # arch-archlinux-pitfalls — Real-World Error Catalog
@@ -10,6 +10,9 @@ description: 'Living catalog of real errors encountered while building Arch Linu
 > building an Arch ISO/appliance must review this before starting the build.
 
 ## Startup Workflow
+
+> A symptom → entry index, for jumping straight to the failure you are
+> looking at, is in `references/symptom-index.md`.
 
 1. **Consult before building** — read the entries that match the stage you are about to run.
 2. **Profile errors first** — `realpath`, boot modes, `[community]`, `DisableDownloadTimeout`.
@@ -342,6 +345,8 @@ echo "✅ Pitfalls catalog verified ($entries entries)"
 | Structure | every entry has a context, a cause and a solution (or their equivalent) |
 
 ## Definition of Done
+
+**Output:** a numbered, dated catalog entry with its context, cause and fix, plus the `✅ Pitfalls catalog verified (N entries)` line as evidence.
 
 - [ ] The new failure is recorded with its context, its cause and its fix.
 - [ ] The entry is numbered and dated (📏 YYYY-MM-DD).

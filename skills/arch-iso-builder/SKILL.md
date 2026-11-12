@@ -1,6 +1,6 @@
 ---
 name: arch-iso-builder
-description: 'Build Arch Linux live ISOs with archiso. Handles profile configuration, package selection, boot modes (BIOS syslinux + UEFI systemd-boot), and ISO generation. The main orchestration skill for the group, driven by the design brief from arch-distro-design. Use when the user needs a bootable live ISO.'
+description: 'Build Arch Linux live ISOs with archiso: profile configuration, package selection, boot modes (BIOS syslinux and UEFI systemd-boot), the airootfs overlay and ISO generation. Use when the user asks to "build an ISO", "create a live ISO", "make a bootable Arch image", "configure archiso" or "add packages to the live system".'
 ---
 
 # Arch ISO Builder — General Purpose
@@ -75,6 +75,9 @@ packages go in the live system versus the frozen repo, and runs `mkarchiso`.
 `arch-distro-design` must have already defined the 7 categories.
 
 ### 2. Define the profile (`profiledef.sh`)
+
+> The complete profile tree, every `profiledef.sh` variable and the overlay
+> map are in `references/profile-layout.md`.
 
 Critical variables that must **always** be declared:
 
@@ -179,9 +182,9 @@ session, with no extra downloads:
 
 | Asset | Owner skill | Destination in the profile |
 |---|---|---|
-| `assets/build.sh` | `arch-appliance-img` | `airootfs/installer/build.sh` |
-| `assets/payload.sh` | `arch-payload-manifest` | `airootfs/installer/payload.sh` |
-| `assets/load-manifest.sh` | `arch-payload-manifest` | `airootfs/installer/load-manifest.sh` |
+| `scripts/build.sh` | `arch-appliance-img` | `airootfs/installer/build.sh` |
+| `scripts/payload.sh` | `arch-payload-manifest` | `airootfs/installer/payload.sh` |
+| `scripts/load-manifest.sh` | `arch-payload-manifest` | `airootfs/installer/load-manifest.sh` |
 
 Copy them in while assembling the profile:
 
@@ -190,11 +193,11 @@ set -euo pipefail
 
 PROFILE="builder/arch-profile"
 
-install -Dm755 skills/arch-appliance-img/assets/build.sh \
+install -Dm755 skills/arch-appliance-img/scripts/build.sh \
   "$PROFILE/airootfs/installer/build.sh"
-install -Dm755 skills/arch-payload-manifest/assets/payload.sh \
+install -Dm755 skills/arch-payload-manifest/scripts/payload.sh \
   "$PROFILE/airootfs/installer/payload.sh"
-install -Dm755 skills/arch-payload-manifest/assets/load-manifest.sh \
+install -Dm755 skills/arch-payload-manifest/scripts/load-manifest.sh \
   "$PROFILE/airootfs/installer/load-manifest.sh"
 ```
 
@@ -287,7 +290,20 @@ echo "✅ Profile is valid for mkarchiso"
 | UEFI exists | `ls builder/arch-profile/efiboot/loader/` | `loader.conf` present |
 | XferCommand ok | `grep XferCommand builder/arch-profile/pacman.conf` | has `curl` |
 
+## Permissions and safety
+
+| | |
+|---|---|
+| **Reads** | the profile directory and the build host's Arch mirrors |
+| **Writes** | `builder/arch-profile/`, `out/*.iso`, `out/SHA256SUMS` and `/var/tmp/archiso-work` (removed afterwards) |
+| **Requires root** | yes — `mkarchiso` and `pacstrap` need it |
+| **Refuses** | a profile that is missing a mandatory file, a `[community]` repo, an inherited host mirrorlist, or an invalid boot mode |
+| **Network** | only the Arch mirrors listed in the profile's `pacman.conf`, with signature verification on |
+| **Never** | leaves `base-devel` or a GUI installer in the live system unless the Brief asked for them |
+
 ## Definition of Done
+
+**Output:** `out/*.iso`, `out/SHA256SUMS` and the profile at `builder/arch-profile/`, plus the `✅ Profile is valid for mkarchiso` line as evidence.
 
 - [ ] Brief completed with all 7 categories **before** starting.
 - [ ] `profiledef.sh` declares every critical variable, with **relative** paths.

@@ -70,6 +70,14 @@
       "evidence": "Three assets shipped and wired into the ISO overlay; QEMU checks #3/#4 now satisfiable; router layers renamed B0..B4; the router carries the derived desktop-layer decision and the build runbook; validator grew to 292 checks including asset and cross-skill reference resolution."
     },
     {
+      "id": "FEAT-016",
+      "name": "Agensi protocol compliance",
+      "description": "Check the whole pack against the published Agensi protocols: SKILL.md format spec, creator checklist and the 8-point security scan. Trigger phrases in every description, output format, permissions declarations, credential hygiene, references per skill and a correct zip structure.",
+      "status": "done",
+      "dependencies": ["FEAT-015"],
+      "evidence": "All nine descriptions carry 3-5 trigger phrases; every skill ships a supporting file; build-packages.mjs produces the ten upload packages with the required structure; the validator enforces the machine-checkable parts (343 assertions)."
+    },
+    {
       "id": "FEAT-011",
       "name": "Stale reference cleanup",
       "description": "Remove references to files that do not exist in the pack (docs/09, docs/04, docs/08-LECCIONES-APRENDIDAS.md), replace the Agensi listing placeholders with the real URL, and gitignore the release zip.",

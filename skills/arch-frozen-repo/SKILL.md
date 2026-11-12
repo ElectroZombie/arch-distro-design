@@ -1,6 +1,6 @@
 ---
 name: arch-frozen-repo
-description: 'Create and maintain a frozen (offline, signed) pacman repository inside the ISO or appliance. Handles repo creation with repo-add, version pinning, and offline consumption. Use when the appliance must work 100% offline and pacman -Syu must resolve against a local signed repo instead of the internet.'
+description: 'Create and maintain a frozen (offline, signed) pacman repository inside the ISO or the appliance: repo-add signing, version pinning with versions.txt and offline consumption from the live system. Use when the user asks to "work offline", "build a local pacman repo", "freeze the package versions", "let pacman -Syu work without internet" or "air-gap the packages".'
 ---
 
 # Arch Frozen Repo — General Purpose
@@ -67,6 +67,9 @@ repository is what the live system/appliance uses to synchronize packages
 ## Mandatory workflow
 
 ### 1. Build the frozen repo (after the ISO build)
+
+> The repo layout, the consumer `pacman.conf` and the pinning procedure are
+> in `references/repo-layout.md`.
 
 The package list comes from the ISO build: `builder/repo-packages.txt`, written
 by `arch-iso-builder`, is the subset of the profile's packages that must be
@@ -222,7 +225,20 @@ yay -Sy --noconfirm
 pamac update --force-refresh
 ```
 
+## Permissions and safety
+
+| | |
+|---|---|
+| **Reads** | the package list and the profile's `pacman.conf` |
+| **Writes** | `airootfs/arch-repo/` inside the profile, and `out/versions.txt` |
+| **Requires root** | yes — `pacman -Sw` and `repo-add` need it |
+| **Refuses** | an unsigned database, and an `[aur]` repo in the default flow |
+| **Network** | only the Arch mirrors named in the profile's `pacman.conf`, with signature verification on |
+| **Never** | weakens signature verification: `SigLevel = PackageRequired` on the live system, always |
+
 ## Definition of Done
+
+**Output:** the signed repo at `airootfs/arch-repo/`, `out/versions.txt`, plus the `✅ Frozen repo verified` line as evidence.
 
 - [ ] Brief completed (network policy and update policy) before generating the repo.
 - [ ] The repo lives **inside the ISO** (`airootfs/arch-repo/`), never inside DATA.

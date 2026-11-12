@@ -1,6 +1,6 @@
 ---
 name: arch-qemu-validation
-description: 'Automated QEMU test harness for Arch ISOs and .img appliances. Validates boot, serial console, SSH, partitions, graceful shutdown, and a 15+ item checklist. Use when an artifact must be verified in QEMU before touching real hardware.'
+description: 'Automated QEMU test harness for Arch ISOs and .img appliances: validates boot, serial console, SSH, partitions, graceful shutdown and a 15-item ISO / 13-item appliance checklist. Use when the user asks to "test the ISO in QEMU", "validate the image", "run the appliance checklist", "check that it boots" or "verify it before flashing".'
 ---
 
 # Arch QEMU Validation — General Purpose
@@ -94,6 +94,9 @@ echo "✅ QEMU environment ready"
 > the **whole** checklist again — a partial rerun proves nothing.
 
 ## A. Live ISO validation
+
+> Both checklists — the 15 ISO checks and the 13 appliance checks — with the
+> exact command for each, are in `references/checklists.md`.
 
 ### A.1 Booting with `run_archiso`
 
@@ -344,7 +347,20 @@ while True:
 | `appliance-update` service | ❌ (ISO build only) | ✅ (in the .img) |
 | `pacman -Sy` without a 404 | ✅ | ❌ (installed system, not live) |
 
+## Permissions and safety
+
+| | |
+|---|---|
+| **Reads** | the artifact, the profile and the OVMF firmware in `/usr/share/edk2/x64/` |
+| **Writes** | `/tmp` (the OVMF vars copy, the QMP socket, the serial socket) and the evidence record |
+| **Requires root** | no — everything runs unprivileged under QEMU |
+| **Refuses** | nothing to refuse; the gate is that a failing check blocks the artifact |
+| **Network** | QEMU user-mode networking only (`localhost:60022` → guest port 22); no outbound traffic |
+| **Never** | writes to a real disk — the whole point is that nothing touches physical media before this gate passes |
+
 ## Definition of Done
+
+**Output:** the completed checklist (15 items for the ISO, 13 for the `.img`), the artifact SHA256, and the date — the evidence record of §B.5.
 
 - [ ] Every check in the applicable checklist passed (§A.2 for the ISO, §B.2 for the `.img`).
 - [ ] Checksum verified with `sha256sum -c out/SHA256SUMS`.

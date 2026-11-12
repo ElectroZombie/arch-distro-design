@@ -72,6 +72,48 @@ skills with the shared harness contract, plus the repository harness.
 - `harness/init.sh` now resolves the repository root itself, so it runs the
   same from any working directory.
 
+## [1.3.2] — 2026-11-12
+
+Protocol compliance: the pack is checked against the published Agensi
+protocols — the SKILL.md format reference, the creator checklist and the
+8-point security scan.
+
+### Added
+- **Reference material inside every skill** — nine `references/` files, so the
+  pack is self-contained and the long-form detail leaves `SKILL.md`:
+  `brief-template.md`, `profile-layout.md`, `partition-table.md`,
+  `repo-layout.md`, `manifest-keys.md`, `layer-matrix.md`, `checklists.md`,
+  `hardware-checklist.md`, `symptom-index.md`.
+- `harness/scripts/build-packages.mjs` — builds the ten Agensi upload packages
+  (one per skill plus the pack) with the structure the security scan requires:
+  a single top-level folder, `SKILL.md` at its root, no symlinks, no binaries,
+  no OS junk. Store-only and deterministic: the same input always produces
+  byte-identical output, and the Unix mode is preserved so the extracted
+  scripts are executable.
+- **Permissions and safety** tables in the six skills that touch the system:
+  what each one reads, writes, refuses, and which network it may reach.
+- An **Output:** line in every Definition of Done, so the agent reports the
+  same shape every time.
+
+### Changed
+- **All nine descriptions now carry 3-5 trigger phrases**, as the Agensi
+  creator checklist requires. Before, only the router did — which is why the
+  other eight rarely activated on their own.
+- The supporting files moved from `assets/` to `scripts/`: the SKILL.md
+  convention puts executable code in `scripts/` and templates in `assets/`.
+- The database URL example now uses environment variables
+  (`${DB_USER}`/`${DB_PASSWORD}`) and the systemd unit reads them from an
+  `EnvironmentFile` — no credential-shaped string in the pack.
+- `harness/scripts/validate-pack.mjs` grew to 343 assertions: it now checks
+  the frontmatter slug, the description length, the trigger phrases, the
+  supporting-file references and the cross-skill references.
+
+### Removed
+- The stale `arch-distro-design-agensi.zip` at the repository root — it was
+  built before the skill contract and had the wrong structure for the Agensi
+  scan. `dist/` is now gitignored and rebuilt with
+  `node harness/scripts/build-packages.mjs`.
+
 ## [1.3.1] — 2026-11-11
 
 Integration fixes: the seams **between** the skills, closed without changing

@@ -1,6 +1,6 @@
 ---
 name: arch-payload-manifest
-description: 'Parse and materialize app payloads from their own repositories. KEY=VALUE manifest format, bash-only parsing (no jq/yq/python). Handles runtime selection (native/nspawn/podman), embedded/external databases, and volume mappings. Use when an appliance needs to install self-hosted apps without vendoring their code.'
+description: 'Parse and materialize app payloads from their own repositories with a KEY=VALUE manifest and bash-only parsing (no jq, yq or python): runtime selection (native/nspawn/podman), embedded or external databases and volume mappings. Use when the user asks to "install a self-hosted app", "bundle a payload", "add an app to the appliance", "materialize a manifest" or "run the app in a container".'
 ---
 
 # Arch Payload Manifest — General Purpose
@@ -69,6 +69,9 @@ HEALTHCHECK=http://127.0.0.1:8080/health
 
 ## Recognized keys
 
+> Every key with its type, default and validation rule is in
+> `references/manifest-keys.md`.
+
 | Key | Mandatory | Values | Meaning |
 |---|---|---|---|
 | `NAME` | ✅ | text | App name (for logs and UI) |
@@ -92,7 +95,7 @@ HEALTHCHECK=http://127.0.0.1:8080/health
 
 > 🔧 Fixed parser: the previous version had a broken trim line.
 
-The parser ships as an **asset** of this skill — `assets/load-manifest.sh` — and
+The parser ships with this skill — `scripts/load-manifest.sh` — and
 the ISO carries it at `/installer/load-manifest.sh`. The reference copy:
 
 ```bash
@@ -183,7 +186,7 @@ echo "RUNTIME: ${MANIFEST[RUNTIME]:-native}"
 | Network | Requires LAN or access to the DB server |
 | Autonomy | ❌ depends on its external server |
 | RAM | +30–80 MB |
-| URL example | `postgresql://user:pass@db.host:5432/dbname?sslmode=disable` |
+| URL example | `postgresql://${DB_USER}:${DB_PASSWORD}@db.host:5432/dbname?sslmode=disable` |
 
 ### `DATABASE=none`
 
@@ -222,13 +225,22 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/<app-slug>
+EnvironmentFile=-/etc/app/<app-slug>.env
 Environment=NODE_ENV=production
-Environment=DATABASE_URL=<connection-URL>
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
+```
+
+> ⚠️ **Credentials never go in the manifest.** The database URL and any token
+> belong in `/etc/app/<app-slug>.env` (mode `600`), which the unit reads through
+> `EnvironmentFile`. The manifest only carries the *name* of the variable.
+
+```bash
+# /etc/app/<app-slug>.env  (mode 600, owned by root)
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db.host:5432/dbname?sslmode=disable
 ```
 
 > ⚠️ `WorkingDirectory=/opt/<app-slug>` (symlink without spaces) — never the
@@ -244,13 +256,13 @@ apps/
 ```
 
 The installer reads the manifest, validates the keys and delegates the
-materialization on the appliance. Both halves ship as assets of this skill, and
+materialization on the appliance. Both halves ship as scripts of this skill, and
 the ISO carries them at `/installer/`:
 
 | Asset | Destination in the ISO | What it does |
 |---|---|---|
-| `assets/payload.sh` | `/installer/payload.sh` | materializes `SOURCE@SOURCE_REF`, writes the unit, enables the service, waits for the healthcheck |
-| `assets/load-manifest.sh` | `/installer/load-manifest.sh` | the pure-bash parser (no `jq`, `yq` or `python`) |
+| `scripts/payload.sh` | `/installer/payload.sh` | materializes `SOURCE@SOURCE_REF`, writes the unit, enables the service, waits for the healthcheck |
+| `scripts/load-manifest.sh` | `/installer/load-manifest.sh` | the pure-bash parser (no `jq`, `yq` or `python`) |
 
 ```bash
 # From the live session
@@ -270,7 +282,7 @@ set -euo pipefail
 MANIFEST="${1:?usage: verify-payload.sh <app.conf>}"
 
 # Load the manifest with the pure-bash parser (no jq/yq/python)
-source skills/arch-payload-manifest/assets/load-manifest.sh
+source skills/arch-payload-manifest/scripts/load-manifest.sh
 load_manifest "$MANIFEST"
 
 # 1. Mandatory keys are present
@@ -304,14 +316,27 @@ echo "✅ Payload manifest verified"
 | Check | Command | Expected |
 |---|---|---|
 | Valid manifest | `load-manifest.sh app.conf` | `MANIFEST[NAME]` set |
-| Parser asset present | `test -f skills/arch-payload-manifest/assets/load-manifest.sh` | present |
-| Installer asset present | `test -f skills/arch-payload-manifest/assets/payload.sh` | present |
+| Parser asset present | `test -f skills/arch-payload-manifest/scripts/load-manifest.sh` | present |
+| Installer asset present | `test -f skills/arch-payload-manifest/scripts/payload.sh` | present |
 | SOURCE is a valid URL | `curl -I "${MANIFEST[SOURCE]}"` | 200 OK |
 | Supported RUNTIME | `${MANIFEST[RUNTIME]:-native}` in `native nspawn podman` | valid |
 | DATA_DIR under /data | `${MANIFEST[DATA_DIR]}` starts with `/data` | true |
 | Healthcheck defined | `${MANIFEST[HEALTHCHECK]}` not empty | URL or cmd |
 
+## Permissions and safety
+
+| | |
+|---|---|
+| **Reads** | the manifest file the operator passed, and the appliance's own `/etc` and `/opt` |
+| **Writes** | `/data/apps/<slug>`, `/opt/<slug>` and `/etc/systemd/system/app-<slug>.service` |
+| **Requires root** | yes — it installs a systemd unit and enables a service |
+| **Refuses** | a `DATA_DIR` outside `/data`, a missing mandatory key, an unsupported `RUNTIME`, and a `SOURCE` that is not an `https` URL |
+| **Network** | **only** the repository named in the manifest's `SOURCE`, over `https` |
+| **Never** | stores credentials — the database URL is read from the environment, never written into the manifest |
+
 ## Definition of Done
+
+**Output:** the materialized app under `/data/apps/<slug>`, the running `app-<slug>.service`, plus the `✅ Payload manifest verified` and healthcheck lines as evidence.
 
 - [ ] Manifest declares `NAME`, `VERSION` and `SOURCE`.
 - [ ] `SOURCE` is a remote repo — no app code is vendored in this repository.

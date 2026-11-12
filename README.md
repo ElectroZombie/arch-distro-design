@@ -69,18 +69,25 @@ This harness exists to **prevent exactly those failure modes**. It encodes the d
 | **Validation** | `arch-hardware-handler` | Safe physical write and hardware compatibility gate. |
 | **Documentation** | `arch-archlinux-pitfalls` | Living catalog of real Arch/archiso errors. |
 
-### Scripts that ship with the skills
+### What ships with the skills
 
-Two skills ship executable assets inside their folder, so the agent has
-something to run instead of a script to invent:
+Every skill ships at least one supporting file — the long-form reference in
+`references/`, or an executable in `scripts/`. The agent has something to run
+instead of a script to invent.
 
-| Skill | Asset | What it does |
+| Skill | Ships | What it is |
 |---|---|---|
-| `arch-appliance-img` | `assets/build.sh` | the `.img` builder CLI (`--disk`, `--profile`, `--yes`, `--dry-run`) |
-| `arch-payload-manifest` | `assets/payload.sh` | materializes a payload, writes its unit, enables the service |
-| `arch-payload-manifest` | `assets/load-manifest.sh` | the pure-bash manifest parser (no `jq`, `yq` or `python`) |
+| `arch-distro-design` | `references/brief-template.md` | the fill-in Brief, artifact contract and derived decisions |
+| `arch-iso-builder` | `references/profile-layout.md` | the profile tree, every variable, the overlay map |
+| `arch-appliance-img` | `references/partition-table.md` · `scripts/build.sh` | the EFI+SYS+DATA scheme · the `.img` builder CLI |
+| `arch-frozen-repo` | `references/repo-layout.md` | the repo layout, the consumer config, the pinning procedure |
+| `arch-payload-manifest` | `references/manifest-keys.md` · `scripts/payload.sh` · `scripts/load-manifest.sh` | every manifest key · the payload installer · the pure-bash parser |
+| `arch-desktop-layers` | `references/layer-matrix.md` | the package matrix of every layer |
+| `arch-qemu-validation` | `references/checklists.md` | the 15 ISO + 13 appliance checks, with commands |
+| `arch-hardware-handler` | `references/hardware-checklist.md` | the write guards and the compatibility matrix |
+| `arch-archlinux-pitfalls` | `references/symptom-index.md` | symptom → entry, to jump straight to the failure |
 
-The live ISO carries them at `/installer/`, so an operator can write an
+The live ISO carries the scripts at `/installer/`, so an operator can write an
 appliance or install a payload straight from the live session — see
 `arch-iso-builder` for how they get into the overlay.
 
@@ -264,6 +271,7 @@ arch-distro-design/
 │   ├── session-handoff.md      # Handoff template for multi-session work
 │   ├── init.sh                 # Startup and verification entrypoint
 │   └── scripts/
+│       ├── build-packages.mjs  # Builds the Agensi upload packages
 │       └── validate-pack.mjs   # Dependency-free structural checks
 ├── skills.sh.json          # Grouping metadata (skills.sh only; ignored by Agensi)
 ├── AGENTS.md               # Pointer to harness/AGENTS.md for auto-loading agents
@@ -271,6 +279,15 @@ arch-distro-design/
 ├── CHANGELOG.md
 ├── README.md
 └── LICENSE
+```
+
+Each skill folder follows the SKILL.md convention:
+
+```text
+skills/<name>/
+├── SKILL.md              # required: the instructions
+├── references/           # optional: long-form reference material
+└── scripts/              # optional: executable helpers
 ```
 
 ---
