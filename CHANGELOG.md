@@ -33,6 +33,15 @@ skills with the shared harness contract, plus the repository harness.
 - `TIERS.md` — the free vs paid edition comparison, including the Agensi
   price ladder: the router and the pitfalls catalog are **free**, the other
   seven skills are **$5** each, and the complete set is **$25**.
+- **Scripts that ship with the skills** — the pack documented a CLI and an
+  artifact it did not ship:
+  - `skills/arch-appliance-img/assets/build.sh` — the `.img` builder CLI
+    (`--disk`, `--profile`, `--yes`, `--dry-run`) with the documented guards.
+  - `skills/arch-payload-manifest/assets/payload.sh` — materializes a payload,
+    writes its unit, enables the service, waits for the healthcheck.
+  - `skills/arch-payload-manifest/assets/load-manifest.sh` — the pure-bash
+    manifest parser.
+  - `arch-iso-builder` copies all three into the ISO overlay at `/installer/`.
 
 ### Changed
 - **All nine skills now follow the same harness contract.** Each `SKILL.md` gained
@@ -58,6 +67,27 @@ skills with the shared harness contract, plus the repository harness.
 - The author line carries both handles: Agensi and GitHub.
 
 ### Fixed
+- **The installer finally has a producer.** `arch-qemu-validation` check #4
+  asserted that the ISO carries the installer, and `arch-payload-manifest`
+  expected `installer/payload.sh` — but no skill created either, so an agent
+  following the pack had nothing to run and failed the gate. The three assets
+  above close the loop.
+- **QEMU checks #3 and #4 now test what they claim.** Both grepped the ISO
+  file listing for content that lives *inside* the squashfs, so they could
+  never pass. #3 now asserts the ISO carries `airootfs.sfs`; #4 checks
+  `/installer/` in the live session, where the overlay actually lives.
+- **The layer names no longer collide.** The router's system layers are
+  `B0..B4` (*build* layers); `L0..L6` belong to `arch-desktop-layers`
+  (*desktop* layers). Both skills carry a disambiguation note, and the router
+  says to always write *desktop L1* or *build B1*.
+- **The desktop layer is now a design decision.** The Brief derives it
+  explicitly and the router's Definition of Done requires it in `brief.md` —
+  it could not be guessed silently by the ISO builder.
+- **The build sequence is documented.** The router carries the ordered runbook
+  (step → skill → consumes → produces) and the order constraints that matter
+  (desktop before ISO, payload after the appliance, QEMU before hardware).
+- `builder/repo-packages.txt` now has a producer: `arch-iso-builder` writes
+  it and `arch-frozen-repo` consumes it.
 - Removed references to files that do not exist in the pack: `docs/09`,
   `docs/04` and `docs/08-LECCIONES-APRENDIDAS.md`. The canonical state files
   are now `brief.md` and `artifact-contract.md` at the project root, and the

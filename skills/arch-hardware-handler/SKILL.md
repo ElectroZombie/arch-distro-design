@@ -234,6 +234,9 @@ Record the evidence: the **command** you ran and its **output** — the `✅ Tar
 
 ## Common errors and prevention
 
+> The catalog is the canonical source: `arch-archlinux-pitfalls` holds every
+> entry with its context, cause and fix. This table is the short index.
+
 | Error | Symptom | Prevention |
 |---|---|---|
 | `error -71` when removing the USB | Sustained write without `sync` + `kill -9` | `sync` 3 times; never `kill -9` |

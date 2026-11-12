@@ -11,6 +11,10 @@ or appliance with the desktop they need: Openbox, i3, KDE, GNOME, XFCE,
 Cinnamon, LXQT, or none at all (console-only). It integrates with the
 `arch-distro-design` Brief.
 
+> **`L0..L6` are the *desktop* layers.** The system layers of the design are
+> `B0..B4` and belong to `arch-distro-design`. Always say *desktop L1* or
+> *build B1* — a bare "L1" is ambiguous across the pack.
+
 ## Purpose
 
 Allow the user to choose the graphical environment or its absence, without
@@ -243,6 +247,9 @@ Record the evidence: the **command** you ran and its **output** — the `✅ Des
 | specific kiosk (L1 with tweaks) | Same skill, different configuration |
 
 ## Common errors when changing layers
+
+> The catalog is the canonical source: `arch-archlinux-pitfalls` holds every
+> entry with its context, cause and fix. This table is the short index.
 
 | Error | Symptom | Prevention |
 |---|---|---|

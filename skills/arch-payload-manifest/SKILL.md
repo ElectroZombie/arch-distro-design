@@ -92,6 +92,9 @@ HEALTHCHECK=http://127.0.0.1:8080/health
 
 > 🔧 Fixed parser: the previous version had a broken trim line.
 
+The parser ships as an **asset** of this skill — `assets/load-manifest.sh` — and
+the ISO carries it at `/installer/load-manifest.sh`. The reference copy:
+
 ```bash
 #!/usr/bin/env bash
 # load-manifest.sh — read a KEY=VALUE manifest and export an associative array
@@ -240,6 +243,22 @@ apps/
     └── app.conf        # ONLY the manifest — the code is NOT here
 ```
 
+The installer reads the manifest, validates the keys and delegates the
+materialization on the appliance. Both halves ship as assets of this skill, and
+the ISO carries them at `/installer/`:
+
+| Asset | Destination in the ISO | What it does |
+|---|---|---|
+| `assets/payload.sh` | `/installer/payload.sh` | materializes `SOURCE@SOURCE_REF`, writes the unit, enables the service, waits for the healthcheck |
+| `assets/load-manifest.sh` | `/installer/load-manifest.sh` | the pure-bash parser (no `jq`, `yq` or `python`) |
+
+```bash
+# From the live session
+/installer/payload.sh apps/mail-system/app.conf
+```
+
+See `arch-iso-builder` for how the assets get into the overlay.
+
 ## Verification
 
 Run on the manifest before installing anything. The script fails fast on the
@@ -251,7 +270,7 @@ set -euo pipefail
 MANIFEST="${1:?usage: verify-payload.sh <app.conf>}"
 
 # Load the manifest with the pure-bash parser (no jq/yq/python)
-source ./load-manifest.sh
+source skills/arch-payload-manifest/assets/load-manifest.sh
 load_manifest "$MANIFEST"
 
 # 1. Mandatory keys are present
@@ -285,6 +304,8 @@ echo "✅ Payload manifest verified"
 | Check | Command | Expected |
 |---|---|---|
 | Valid manifest | `load-manifest.sh app.conf` | `MANIFEST[NAME]` set |
+| Parser asset present | `test -f skills/arch-payload-manifest/assets/load-manifest.sh` | present |
+| Installer asset present | `test -f skills/arch-payload-manifest/assets/payload.sh` | present |
 | SOURCE is a valid URL | `curl -I "${MANIFEST[SOURCE]}"` | 200 OK |
 | Supported RUNTIME | `${MANIFEST[RUNTIME]:-native}` in `native nspawn podman` | valid |
 | DATA_DIR under /data | `${MANIFEST[DATA_DIR]}` starts with `/data` | true |

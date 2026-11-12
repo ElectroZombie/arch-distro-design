@@ -68,6 +68,10 @@ repository is what the live system/appliance uses to synchronize packages
 
 ### 1. Build the frozen repo (after the ISO build)
 
+The package list comes from the ISO build: `builder/repo-packages.txt`, written
+by `arch-iso-builder`, is the subset of the profile's packages that must be
+available **offline**.
+
 ```bash
 set -euo pipefail
 

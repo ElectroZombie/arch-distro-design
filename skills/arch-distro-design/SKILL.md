@@ -1,6 +1,6 @@
 ---
 name: arch-distro-design
-description: 'Router and root skill for designing Arch Linux distributions. Decides which artifact (ISO, .img, or both) to build, defines the L0-L4 layer model, and enforces the mandatory 7-category Brief before any construction begins. Use when the user asks for "a distro", "an appliance", "an Arch ISO", or "a self-hosted system" without specifying the output format.'
+description: 'Router and root skill for designing Arch Linux distributions. Decides which artifact (ISO, .img, or both) to build, defines the B0-B4 build-layer model, and enforces the mandatory 7-category Brief before any construction begins. Use when the user asks for "a distro", "an appliance", "an Arch ISO", or "a self-hosted system" without specifying the output format.'
 ---
 
 # Arch Distro Design — Router
@@ -23,7 +23,7 @@ description: 'Router and root skill for designing Arch Linux distributions. Deci
 
 ## Scope
 
-**In scope:** the artifact decision, the layer model (L-1..L4), the artifact contract, the network and update policy, and the immutability model.
+**In scope:** the artifact decision, the build-layer model (B-1..B4), the artifact contract, the network and update policy, and the immutability model.
 
 **Out of scope:** building anything. This skill decides; the siblings execute.
 
@@ -80,23 +80,28 @@ Golden rule: **three independent artifacts**, each versioned separately.
 4. The ISO can live in the distro repo; the .img is usually a release
    artifact (binary, checksum), not source code.
 
-## Layers (L0..L4 model)
+## Layers (B0..B4 model)
 
 Each layer is **cumulative** and can be sold on its own.
 
+> **B = build layers (this model). L = desktop layers.** The two systems are
+> separate and must never be mixed: `L0..L6` belong to `arch-desktop-layers`
+> (console → GNOME), `B0..B4` belong to this skill (what the system is made
+> of). "L1" on its own is ambiguous — always say *desktop L1* or *build B1*.
+
 | Layer | Content | Skill that resolves it |
 |---|---|---|
-| **L0** | boot + firmware + bootloader (UEFI+BIOS) | `arch-iso-builder`, `arch-appliance-img` |
-| **L1** | base: kernel, shell, tools, locales, TZ | `arch-iso-builder` |
-| **L2** | services: ssh, network (networkd), update-unit, time | `arch-appliance-img` |
-| **L3** | web platform: nginx, nftables, no DB | `arch-appliance-img` |
-| **L4** | app payloads | `arch-payload-manifest` |
-| **L-1** | DATA: partition portable across machines | `arch-appliance-img` |
+| **B0** | boot + firmware + bootloader (UEFI+BIOS) | `arch-iso-builder`, `arch-appliance-img` |
+| **B1** | base: kernel, shell, tools, locales, TZ | `arch-iso-builder` |
+| **B2** | services: ssh, network (networkd), update-unit, time | `arch-appliance-img` |
+| **B3** | web platform: nginx, nftables, no DB | `arch-appliance-img` |
+| **B4** | app payloads | `arch-payload-manifest` |
+| **B-1** | DATA: partition portable across machines | `arch-appliance-img` |
 
 Cross-cutting rules:
-- **L3 does not include a database.** The database is declared by the payload (`embedded`/`external`).
-- **L4 does not touch the rootfs** outside `/opt` + units.
-- **L-1 is never touched from the host** except through an explicit admin operation.
+- **B3 does not include a database.** The database is declared by the payload (`embedded`/`external`).
+- **B4 does not touch the rootfs** outside `/opt` + units.
+- **B-1 is never touched from the host** except through an explicit admin operation.
 
 ## Design process (mandatory, in this order)
 
@@ -112,6 +117,14 @@ Cross-cutting rules:
 | Apps to include? | Decides payloads and whether a DB is needed |
 | Immutability? | Decides whether root is rw or squashfs |
 | Update policy? | Decides `appliance-update.service` |
+
+> **Derived decision — the desktop layer.** The Brief does not ask for it, but
+> the ISO build cannot start without it: `arch-desktop-layers` decides which
+> packages go into `packages.x86_64` and which session starts in `.xinitrc`.
+> So right after the Brief: if the objective needs a graphical interface,
+> choose the desktop layer **now** (`L0..L6` in `arch-desktop-layers`) and
+> write it into `brief.md`. If it does not, write `L0` (console-only). Never
+> let the ISO builder pick it implicitly.
 
 ### 2. Artifact contract
 
@@ -189,6 +202,35 @@ echo "✅ Design brief and artifact contract verified"
 | 4 | Network + update policy | written, not implied |
 | 5 | Immutability model | `rw`, `squashfs` or `overlayfs` |
 
+## Build sequence
+
+The nine skills are one chain. This is the order, and what each step consumes
+and produces — use it to check that no step is missing or inverted.
+
+| # | Step | Skill | Consumes | Produces |
+|---|---|---|---|---|
+| 1 | Brief + contract | `arch-distro-design` | the request | `brief.md`, `artifact-contract.md` |
+| 2 | Desktop layer | `arch-desktop-layers` | `brief.md` | `desktop_layer` + the packages for the profile |
+| 3 | Live ISO | `arch-iso-builder` | the profile + the layer's packages | `builder/arch-profile/`, `out/*.iso` |
+| 4 | Frozen repo | `arch-frozen-repo` | `builder/repo-packages.txt` | `airootfs/arch-repo/`, `out/versions.txt` |
+| 5 | Appliance image | `arch-appliance-img` | the profile + `build.sh` | `out/appliance-*.img` |
+| 6 | Payloads | `arch-payload-manifest` | `apps/<slug>/app.conf` | `/data/apps/<slug>` on the appliance |
+| 7 | Validation | `arch-qemu-validation` | the ISO and the `.img` | the evidence record |
+| 8 | Physical write | `arch-hardware-handler` | the validated artifact | the media + `hardware-log.txt` |
+| 9 | Memory | `arch-archlinux-pitfalls` | every real failure | the updated catalog |
+
+**Order constraints that matter:**
+
+- Step 2 **before** step 3 — the desktop layer decides the packages in
+  `packages.x86_64` and the session in `.xinitrc`, both baked into the ISO.
+- Step 4 **inside** step 3 — the frozen repo is an overlay of the ISO, not a
+  separate artifact.
+- Step 6 **after** step 5 — payloads are materialized on the appliance, never
+  carried inside the ISO.
+- Step 7 **before** step 8 — nothing touches a physical disk before the QEMU
+  gate passes.
+- Step 9 is continuous, not a phase.
+
 ## Definition of Done
 
 - [ ] Brief answered by the user (not guessed).
@@ -196,7 +238,8 @@ echo "✅ Design brief and artifact contract verified"
 - [ ] "What goes where" contract written.
 - [ ] Network + update policy decided.
 - [ ] Immutability model decided.
-- [ ] Package list with verified repo (see `arch-archlinux-pitfalls`).
+- [ ] Desktop layer chosen (L0..L6) or explicitly console-only, written to `brief.md`.
+- [ ] Package list with verified repo (see `arch-archlinux-pitfalls`), and the subset to freeze written to `builder/repo-packages.txt`.
 - [ ] Disk size and partition table decided.
 - [ ] Apps → payloads with runtime and DB declared.
 - [ ] QEMU validation plan defined.
@@ -226,7 +269,7 @@ echo "✅ Design brief and artifact contract verified"
 |---|---|
 | The 7-category Brief | `brief.md` |
 | Artifact contract ("what goes where") | `artifact-contract.md` |
-| Layer decisions (L-1..L4) | `brief.md` |
+| Layer decisions (B-1..B4) | `brief.md` |
 | Validation plan | `brief.md` |
 
 Record the evidence before delegating: the **command** you ran and its **output** (for example the `✅ Design brief and artifact contract verified` line). Without that evidence the design is not done.

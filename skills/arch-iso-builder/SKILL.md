@@ -66,6 +66,7 @@ packages go in the live system versus the frozen repo, and runs `mkarchiso`.
 | `out/*.iso` | Bootable ISO (BIOS + UEFI) with a squashfs rootfs |
 | `out/SHA256SUMS` | ISO checksums (for versioning) |
 | `builder/arch-profile/` | Profile ready for `mkarchiso` |
+| `builder/repo-packages.txt` | The subset of the profile's packages to freeze into the offline repo (read by `arch-frozen-repo`) |
 
 ## Mandatory workflow
 
@@ -166,6 +167,41 @@ Server = https://mirror.garr.it/archlinux/$repo/os/$arch
 | `root/.bash_profile` | `startx` if `tty = /dev/tty1` |
 | `root/.xinitrc` | `tint2 &` + `exec openbox-session` (or the WM chosen by the Brief) |
 | `root/.xprofile` | Qt/X environment variables |
+| `installer/build.sh` | the `.img` builder (asset of `arch-appliance-img`) |
+| `installer/payload.sh` | the payload materializer (asset of `arch-payload-manifest`) |
+| `installer/load-manifest.sh` | the pure-bash manifest parser (asset of `arch-payload-manifest`) |
+
+#### The installer travels inside the ISO
+
+The other skills ship their scripts as **assets**, and the ISO carries them so
+an operator can write an appliance or install a payload straight from the live
+session, with no extra downloads:
+
+| Asset | Owner skill | Destination in the profile |
+|---|---|---|
+| `assets/build.sh` | `arch-appliance-img` | `airootfs/installer/build.sh` |
+| `assets/payload.sh` | `arch-payload-manifest` | `airootfs/installer/payload.sh` |
+| `assets/load-manifest.sh` | `arch-payload-manifest` | `airootfs/installer/load-manifest.sh` |
+
+Copy them in while assembling the profile:
+
+```bash
+set -euo pipefail
+
+PROFILE="builder/arch-profile"
+
+install -Dm755 skills/arch-appliance-img/assets/build.sh \
+  "$PROFILE/airootfs/installer/build.sh"
+install -Dm755 skills/arch-payload-manifest/assets/payload.sh \
+  "$PROFILE/airootfs/installer/payload.sh"
+install -Dm755 skills/arch-payload-manifest/assets/load-manifest.sh \
+  "$PROFILE/airootfs/installer/load-manifest.sh"
+```
+
+> **Why it matters:** `arch-qemu-validation` check #4 asserts that the ISO
+> carries the installer, and `arch-payload-manifest` expects
+> `installer/payload.sh` to read the manifest. If the profile does not carry
+> them, those two steps have nothing to run and the ISO fails its own gate.
 
 ### 6. Valid boot modes (archiso 91-1)
 
@@ -232,7 +268,12 @@ grep -q 'bootmodes=' "$PROFILE/profiledef.sh"
 # 4. The host mirrorlist is never inherited
 ! grep -qs 'Include *= */etc/pacman.d/mirrorlist' "$PROFILE/pacman.conf"
 
-# 5. Work dir and out dir exist before mkarchiso
+# 5. The installer assets are in the overlay (QEMU check #4 depends on it)
+test -f "$PROFILE/airootfs/installer/build.sh"
+test -f "$PROFILE/airootfs/installer/payload.sh"
+test -f "$PROFILE/airootfs/installer/load-manifest.sh"
+
+# 6. Work dir and out dir exist before mkarchiso
 mkdir -p /var/tmp/archiso-work "$PWD/out"
 
 echo "✅ Profile is valid for mkarchiso"
@@ -284,6 +325,9 @@ Record the evidence: the **command** you ran and its **output** — the `✅ Pro
 | validate hardware before writing | `arch-hardware-handler` |
 
 ## Common errors
+
+> The catalog is the canonical source: `arch-archlinux-pitfalls` holds every
+> entry with its context, cause and fix. This table is the short index.
 
 | Error | Cause | Prevention |
 |---|---|---|

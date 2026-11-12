@@ -62,6 +62,14 @@
       "evidence": "AGENTS.md, feature_list.json, progress.md, session-handoff.md, init.sh and scripts/ now live in harness/; the root holds only product files."
     },
     {
+      "id": "FEAT-015",
+      "name": "Cross-skill integration fixes",
+      "description": "Close the seams between skills without changing their function: ship the installer assets, fix the two impossible QEMU checks, disambiguate the layer names, make the desktop layer a Brief decision, document the build sequence, and give repo-packages.txt a producer.",
+      "status": "done",
+      "dependencies": ["FEAT-009"],
+      "evidence": "Three assets shipped and wired into the ISO overlay; QEMU checks #3/#4 now satisfiable; router layers renamed B0..B4; the router carries the derived desktop-layer decision and the build runbook; validator grew to 292 checks including asset and cross-skill reference resolution."
+    },
+    {
       "id": "FEAT-011",
       "name": "Stale reference cleanup",
       "description": "Remove references to files that do not exist in the pack (docs/09, docs/04, docs/08-LECCIONES-APRENDIDAS.md), replace the Agensi listing placeholders with the real URL, and gitignore the release zip.",

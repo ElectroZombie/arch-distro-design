@@ -146,8 +146,8 @@ QMP_PID=$!
 |---|---|---|---|
 | 1 | ISO exists and has a reasonable size | `ls -lh out/*.iso` | Size per the Brief |
 | 2 | Checksum OK | `sha256sum -c out/SHA256SUMS` | `OK` |
-| 3 | Contains the frozen repo | `bsdtar -tf out/*.iso \| grep arch-repo` | `arch/arch-repo/appliance.db.tar.gz` |
-| 4 | Contains the installer | `bsdtar -tf out/*.iso \| grep installer` | `arch/installer/build.sh` |
+| 3 | Carries the squashfs rootfs | `bsdtar -tf out/*.iso \| grep airootfs.sfs` | `airootfs.sfs` present |
+| 4 | Carries the installer | `ls /installer/` (in the live session) | `build.sh`, `payload.sh`, `load-manifest.sh` |
 | 5 | Boots and shows the prompt | serial console | login on tty1 or ttyS0 |
 | 6 | The live system mounts the repo | `ls /arch-repo/` | `appliance.db.tar.gz` + `.pkg.tar.zst` |
 | 7 | **Syncs without a 404** | `pacman -Sy` | no `community.db` 404 |
@@ -162,6 +162,9 @@ QMP_PID=$!
 
 > Check **7** detects the `community` → `extra` failure.
 > **8** validates that the frozen repo is correctly signed and installable.
+> The overlay contents (the frozen repo at `/arch-repo/`, the installer at
+> `/installer/`) live **inside the squashfs**, so they are checked in the live
+> session — #4, #6 and #7 — not in the ISO file listing.
 
 ### A.3 BIOS boot (syslinux)
 
@@ -178,6 +181,9 @@ qemu-system-x86_64 \
 ```
 
 ### A.4 Common ISO validation failures
+
+> The catalog is the canonical source: `arch-archlinux-pitfalls` holds every
+> entry with its context, cause and fix. This table is the short index.
 
 | Error | Cause | Solution |
 |---|---|---|

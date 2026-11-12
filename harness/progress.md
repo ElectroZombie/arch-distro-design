@@ -26,8 +26,18 @@
 - Introduced the five-subsystem repository harness — instructions, state,
   verification, scope, lifecycle — and a dependency-free validator that
   enforces frontmatter, naming, manifest consistency, English-only content,
-  README coverage and the skill contract.
+  README coverage, the skill contract, and **asset + cross-skill reference
+  resolution**.
 - Moved the harness into `harness/`, leaving the root a clean product surface.
+- **Fixed the cross-skill seams** without changing what the skills do:
+  the installer now has a producer (three assets shipped, copied into the ISO
+  overlay at `/installer/`); QEMU checks #3 and #4 now test what they claim
+  and can actually pass; the layer names no longer collide (router `B0..B4`,
+  desktop `L0..L6`); the desktop layer is an explicit Brief decision; the
+  router carries the ordered build runbook; `builder/repo-packages.txt` has a
+  producer.
+- **Added the two editions** — free and paid — with the Agensi price ladder
+  (router + pitfalls free, seven skills at $5, the set at $25).
 - Cleaned stale references: `docs/09`, `docs/04` and
   `docs/08-LECCIONES-APRENDIDAS.md` pointed at files that do not exist; the
   canonical state files are now `brief.md` and `artifact-contract.md` at the

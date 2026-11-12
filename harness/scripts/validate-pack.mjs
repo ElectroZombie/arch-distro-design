@@ -169,6 +169,59 @@ for (const dir of skillDirs) {
   }
 }
 
+// --- Cross-skill and asset references -----------------------------------------
+// A skill that points at a sibling or at an asset that does not exist is an
+// integration break: the agent follows the reference and finds nothing.
+const NOT_SKILLS = new Set([
+  'arch-chroot',            // the arch-install-scripts command
+  'arch-install-scripts',   // an Arch package
+  'arch-profile',           // a directory under builder/
+  'arch-repo'               // the frozen repo directory
+]);
+
+// Collect every asset that ships in the pack, keyed as `assets/<path>`.
+const packAssets = new Set();
+for (const dir of skillDirs) {
+  const assetsDir = path.join(SKILLS_DIR, dir, 'assets');
+  if (!existsSync(assetsDir)) continue;
+  const walk = (current, prefix) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(path.join(current, entry.name), rel);
+      else if (entry.isFile()) packAssets.add(`assets/${rel}`);
+    }
+  };
+  walk(assetsDir, '');
+}
+
+for (const dir of skillDirs) {
+  const skillFile = path.join(SKILLS_DIR, dir, 'SKILL.md');
+  if (!existsSync(skillFile)) continue;
+  const content = read(skillFile);
+
+  const skillRefs = new Set(content.match(/arch-[a-z][a-z0-9-]*/g) || []);
+  for (const ref of skillRefs) {
+    if (NOT_SKILLS.has(ref)) continue;
+    check(existsSync(path.join(SKILLS_DIR, ref)), `skills/${dir} references an existing skill: ${ref}`);
+  }
+
+  const assetRefs = new Set(content.match(/assets\/[A-Za-z0-9._/-]+/g) || []);
+  for (const ref of assetRefs) {
+    const clean = ref.replace(/[.,)]+$/, '');
+    check(packAssets.has(clean), `skills/${dir} references an asset that ships in the pack: ${clean}`);
+  }
+}
+
+// Every asset that ships must be reachable from some skill.
+for (const asset of packAssets) {
+  const owner = asset.split('/')[1];
+  const referenced = skillDirs.some((dir) => {
+    const file = path.join(SKILLS_DIR, dir, 'SKILL.md');
+    return existsSync(file) && read(file).includes(asset);
+  });
+  check(referenced, `asset ${asset} is referenced by a skill (owner: ${owner})`);
+}
+
 // --- Manifest <-> disk consistency -------------------------------------------
 for (const name of declared) {
   check(present.has(name), `skills.sh.json entry "${name}" has a matching SKILL.md`);

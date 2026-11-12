@@ -349,6 +349,10 @@ echo "✅ Pitfalls catalog verified ($entries entries)"
 - [ ] The "Common errors" table of the affected skill points at the new entry.
 - [ ] The catalog still passes the verification script.
 
+> **This catalog is the single source of truth** for the failures below. The
+> "Common errors" tables in the other skills are short indexes into it — when
+> an entry changes here, update the index, not the reasoning.
+
 ## State & Evidence
 
 | State | Where it lives |

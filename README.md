@@ -69,6 +69,21 @@ This harness exists to **prevent exactly those failure modes**. It encodes the d
 | **Validation** | `arch-hardware-handler` | Safe physical write and hardware compatibility gate. |
 | **Documentation** | `arch-archlinux-pitfalls` | Living catalog of real Arch/archiso errors. |
 
+### Scripts that ship with the skills
+
+Two skills ship executable assets inside their folder, so the agent has
+something to run instead of a script to invent:
+
+| Skill | Asset | What it does |
+|---|---|---|
+| `arch-appliance-img` | `assets/build.sh` | the `.img` builder CLI (`--disk`, `--profile`, `--yes`, `--dry-run`) |
+| `arch-payload-manifest` | `assets/payload.sh` | materializes a payload, writes its unit, enables the service |
+| `arch-payload-manifest` | `assets/load-manifest.sh` | the pure-bash manifest parser (no `jq`, `yq` or `python`) |
+
+The live ISO carries them at `/installer/`, so an operator can write an
+appliance or install a payload straight from the live session — see
+`arch-iso-builder` for how they get into the overlay.
+
 ---
 
 ## Install

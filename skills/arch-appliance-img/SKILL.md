@@ -100,6 +100,10 @@ Before writing to any physical disk or creating .imgs, go through the
 
 ### 1. `build.sh` CLI (mandatory parameters)
 
+The script ships as an **asset** of this skill — `assets/build.sh` — and the
+ISO carries it at `/installer/build.sh`, so the operator can build the `.img`
+straight from the live session.
+
 ```
 Usage: build.sh --disk <PATH> --profile <PROFILE> --yes --dry-run
 ```
@@ -117,6 +121,14 @@ Flags:
 - Verify that `--disk` is not any primary host partition
 - `--profile` exists and contains `profiledef.sh`, `packages.x86_64`, `pacman.conf`
 - `--yes` or double interaction: "Write .img of <size>? Write Y/N"
+
+The asset implements exactly these steps and guards. Install it into the
+project (or into the ISO overlay, see `arch-iso-builder`):
+
+```bash
+install -Dm755 skills/arch-appliance-img/assets/build.sh ./build.sh
+./build.sh --disk /path/to/appliance.img --profile builder/arch-profile --dry-run
+```
 
 ### 2. `parted` partitioning
 
@@ -327,6 +339,9 @@ Record the evidence: the **command** you ran and its **output** — the `✅ Par
 | validate hardware before writing | `arch-hardware-handler` |
 
 ## Common errors
+
+> The catalog is the canonical source: `arch-archlinux-pitfalls` holds every
+> entry with its context, cause and fix. This table is the short index.
 
 | Error | Symptom | Prevention |
 |---|---|---|
