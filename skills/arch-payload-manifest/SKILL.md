@@ -69,8 +69,9 @@ HEALTHCHECK=http://127.0.0.1:8080/health
 
 ## Recognized keys
 
-> Every key with its type, default and validation rule is in
-> `references/manifest-keys.md`.
+> Every key with its type, default and validation rule ships with the
+> maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 | Key | Mandatory | Values | Meaning |
 |---|---|---|---|
@@ -95,55 +96,17 @@ HEALTHCHECK=http://127.0.0.1:8080/health
 
 > 🔧 Fixed parser: the previous version had a broken trim line.
 
-The parser ships with this skill — `scripts/load-manifest.sh` — and
-the ISO carries it at `/installer/load-manifest.sh`. The reference copy:
+The manifest is `KEY=VALUE`, so it parses in pure bash — no `jq`, no `yq`, no
+`python`. The parser ships with the maintained pack, and the ISO carries it at
+`/installer/load-manifest.sh`:
 
-```bash
-#!/usr/bin/env bash
-# load-manifest.sh — read a KEY=VALUE manifest and export an associative array
-set -euo pipefail
+> 📦 <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
-load_manifest() {
-    local file="$1" key value line
-    declare -gA MANIFEST=()
+While reading a manifest, hold to these rules:
 
-    [[ -f "$file" ]] || { echo "❌ does not exist: $file" >&2; return 1; }
-
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        # Skip comments and empty lines
-        [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
-
-        # Must contain '='
-        [[ "$line" == *=* ]] || continue
-
-        key="${line%%=*}"
-        value="${line#*=}"
-
-        # Trim spaces on both sides
-        key="$(printf '%s' "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-        value="$(printf '%s' "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-
-        # Remove surrounding single or double quotes
-        value="${value%\"}"; value="${value#\"}"
-        value="${value%\'}"; value="${value#\'}"
-
-        # Validate key
-        [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
-
-        MANIFEST["$key"]="$value"
-    done < "$file"
-}
-```
-
-## Usage
-
-```bash
-load_manifest apps/mail/app.conf
-echo "NAME: ${MANIFEST[NAME]}"
-echo "VERSION: ${MANIFEST[VERSION]}"
-echo "SOURCE: ${MANIFEST[SOURCE]}"
-echo "RUNTIME: ${MANIFEST[RUNTIME]:-native}"
-```
+- `#` starts a comment; empty lines are ignored.
+- Keys must match `^[A-Z_][A-Z0-9_]*$`; anything else is skipped.
+- Values are trimmed and unquoted on both sides.
 
 ## Runtimes
 
@@ -256,20 +219,17 @@ apps/
 ```
 
 The installer reads the manifest, validates the keys and delegates the
-materialization on the appliance. Both halves ship as scripts of this skill, and
-the ISO carries them at `/installer/`:
+materialization on the appliance. Both halves — the installer and the parser —
+ship with the maintained pack, and the ISO carries them at `/installer/`:
 
-| Asset | Destination in the ISO | What it does |
-|---|---|---|
-| `scripts/payload.sh` | `/installer/payload.sh` | materializes `SOURCE@SOURCE_REF`, writes the unit, enables the service, waits for the healthcheck |
-| `scripts/load-manifest.sh` | `/installer/load-manifest.sh` | the pure-bash parser (no `jq`, `yq` or `python`) |
+> 📦 <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 ```bash
 # From the live session
 /installer/payload.sh apps/mail-system/app.conf
 ```
 
-See `arch-iso-builder` for how the assets get into the overlay.
+See `arch-iso-builder` for how they get into the overlay.
 
 ## Verification
 
@@ -281,34 +241,28 @@ set -euo pipefail
 
 MANIFEST="${1:?usage: verify-payload.sh <app.conf>}"
 
-# Load the manifest with the pure-bash parser (no jq/yq/python)
-source skills/arch-payload-manifest/scripts/load-manifest.sh
-load_manifest "$MANIFEST"
+# 1. The manifest exists and is not empty
+test -s "$MANIFEST"
 
-# 1. Mandatory keys are present
+# 2. The mandatory keys are present
 for key in NAME VERSION SOURCE; do
-  [[ -n "${MANIFEST[$key]:-}" ]] || { echo "❌ missing key: $key" >&2; exit 1; }
+  grep -qE "^${key}=." "$MANIFEST" || { echo "❌ missing key: $key" >&2; exit 1; }
 done
 
-# 2. The runtime is supported
-case "${MANIFEST[RUNTIME]:-native}" in
-  native|nspawn|podman) ;;
-  *) echo "❌ unsupported RUNTIME: ${MANIFEST[RUNTIME]}" >&2; exit 1 ;;
-esac
+# 3. The source is an https URL — the code is pulled, never vendored
+grep -qE '^SOURCE=https://' "$MANIFEST" || { echo "❌ SOURCE must be an https URL" >&2; exit 1; }
 
-# 3. Persistent data lives under /data (never on a rw COW layer)
-case "${MANIFEST[DATA_DIR]:-/data}" in
-  /data/*) ;;
-  *) echo "❌ DATA_DIR must be under /data" >&2; exit 1 ;;
-esac
-
-# 4. An external database requires its URL
-if [[ "${MANIFEST[DATABASE]:-}" == "external" ]]; then
-  [[ -n "${MANIFEST[DATABASE_URL]:-}" ]] || { echo "❌ DATABASE_URL is required" >&2; exit 1; }
+# 4. The runtime is supported
+if grep -qE '^RUNTIME=' "$MANIFEST"; then
+  grep -qE '^RUNTIME=(native|nspawn|podman)$' "$MANIFEST" \
+    || { echo "❌ unsupported RUNTIME" >&2; exit 1; }
 fi
 
-# 5. SOURCE is reachable — the code is pulled, never vendored
-curl -fsI "${MANIFEST[SOURCE]}" >/dev/null
+# 5. Persistent data lives under /data (never on a rw COW layer)
+if grep -qE '^DATA_DIR=' "$MANIFEST"; then
+  grep -qE '^DATA_DIR=/data/' "$MANIFEST" \
+    || { echo "❌ DATA_DIR must be under /data" >&2; exit 1; }
+fi
 
 echo "✅ Payload manifest verified"
 ```
@@ -316,8 +270,6 @@ echo "✅ Payload manifest verified"
 | Check | Command | Expected |
 |---|---|---|
 | Valid manifest | `load-manifest.sh app.conf` | `MANIFEST[NAME]` set |
-| Parser asset present | `test -f skills/arch-payload-manifest/scripts/load-manifest.sh` | present |
-| Installer asset present | `test -f skills/arch-payload-manifest/scripts/payload.sh` | present |
 | SOURCE is a valid URL | `curl -I "${MANIFEST[SOURCE]}"` | 200 OK |
 | Supported RUNTIME | `${MANIFEST[RUNTIME]:-native}` in `native nspawn podman` | valid |
 | DATA_DIR under /data | `${MANIFEST[DATA_DIR]}` starts with `/data` | true |

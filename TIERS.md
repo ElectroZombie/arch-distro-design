@@ -13,6 +13,7 @@ they differ in **which version** you get and what comes with it afterwards.
 | **Where** | GitHub — [`github-free`](https://github.com/ElectroZombie/arch-distro-design/tree/github-free) branch | Agensi.io — [listing](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) |
 | **Price** | Free | **$25** one-time (or $5 per skill) |
 | **Skills included** | **All nine** | **All nine** |
+| **What is in each skill** | The `SKILL.md`: method, scope, gates, definition of done | The `SKILL.md` **plus** the reference material and the helper scripts |
 | **Version** | The nine skills frozen at the **pre-2.0.0** snapshot (with the broken-reference corrections applied) | **2.0.0** and every release after it |
 | **Updates** | None — the snapshot is final | 12 months included; renewal from month 13 |
 | **Pitfalls catalog** | As of the snapshot | Grows with every real failure |
@@ -35,8 +36,9 @@ better deal the moment you need three of them.
 
 ## What the free edition includes
 
-Everything needed to design, build, validate and deploy an Arch ISO or a
-persistent `.img` appliance:
+Everything needed to **decide and verify**: all nine skills, each with its
+startup workflow, scope boundary, fail-fast verification, definition of done
+and handoff.
 
 | Phase | Skills |
 | :--- | :--- |
@@ -51,6 +53,12 @@ fail-fast validator and `harness/init.sh`.
 
 ## What only the paid edition adds
 
+- **The reference material** — the long-form `references/` of every skill:
+  the fill-in Brief template, the profile layout, the partition scheme, the
+  repo layout, the manifest keys, the package matrix, the full checklists and
+  the symptom index.
+- **The helper scripts** — the `.img` builder CLI, the payload installer and
+  the pure-bash manifest parser, ready to drop into the ISO overlay.
 - **Updates.** The free branch is a **snapshot**: it is frozen and will not
   change. The paid edition receives every release — the pitfalls catalog as
   it grows, the security fixes as they land, and archiso compatibility fixes.

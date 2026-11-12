@@ -11,8 +11,9 @@ description: 'Living catalog of the real errors hit while building Arch Linux IS
 
 ## Startup Workflow
 
-> A symptom → entry index, for jumping straight to the failure you are
-> looking at, is in `references/symptom-index.md`.
+> A symptom → entry index, for jumping straight to the failure you are looking
+> at, ships with the maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 1. **Consult before building** — read the entries that match the stage you are about to run.
 2. **Profile errors first** — `realpath`, boot modes, `[community]`, `DisableDownloadTimeout`.

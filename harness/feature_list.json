@@ -78,6 +78,14 @@
       "evidence": "All nine descriptions carry 3-5 trigger phrases; every skill ships a supporting file; build-packages.mjs produces the ten upload packages with the required structure; the validator enforces the machine-checkable parts (343 assertions)."
     },
     {
+      "id": "FEAT-017",
+      "name": "Free tier downgrade",
+      "description": "Make the free edition strictly below the paid one: keep the nine skills as the method, drop the reference material and the helper scripts, and point every skill at the maintained pack.",
+      "status": "done",
+      "dependencies": ["FEAT-016"],
+      "evidence": "12 supporting files removed from the free branch; every skill names what it lacks and points at the maintained pack; the validator asserts the free-edition shape (346 assertions)."
+    },
+    {
       "id": "FEAT-011",
       "name": "Stale reference cleanup",
       "description": "Remove references to files that do not exist in the pack (docs/09, docs/04, docs/08-LECCIONES-APRENDIDAS.md), replace the Agensi listing placeholders with the real URL, and gitignore the release zip.",

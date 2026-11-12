@@ -68,8 +68,9 @@ repository is what the live system/appliance uses to synchronize packages
 
 ### 1. Build the frozen repo (after the ISO build)
 
-> The repo layout, the consumer `pacman.conf` and the pinning procedure are
-> in `references/repo-layout.md`.
+> The repo layout, the consumer `pacman.conf` and the pinning procedure ship
+> with the maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 The package list comes from the ISO build: `builder/repo-packages.txt`, written
 by `arch-iso-builder`, is the subset of the profile's packages that must be

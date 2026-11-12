@@ -107,9 +107,9 @@ Cross-cutting rules:
 
 ### 1. Brief (questions for the user — do NOT guess)
 
-> A fill-in template for the whole Brief, the artifact contract and the
-> derived decisions is in `references/brief-template.md`. Copy it, fill it in,
-> and save it as `brief.md`.
+> Write the answers into `brief.md`. A fill-in template for the whole Brief,
+> the artifact contract and the derived decisions ships with the maintained
+> pack: <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 | Question | Why it matters |
 |---|---|

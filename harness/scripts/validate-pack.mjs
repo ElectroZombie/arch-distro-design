@@ -193,7 +193,8 @@ const NOT_SKILLS = new Set([
   'arch-chroot',            // the arch-install-scripts command
   'arch-install-scripts',   // an Arch package
   'arch-profile',           // a directory under builder/
-  'arch-repo'               // the frozen repo directory
+  'arch-repo',              // the frozen repo directory
+  'arch-distro-design-iso-appliance-harness'  // the Agensi listing slug, not a skill
 ]);
 
 // Collect every supporting file that ships in the pack (scripts/, assets/,
@@ -256,6 +257,24 @@ for (const { skill, path: file } of supportingFiles) {
   const skillFile = path.join(SKILLS_DIR, skill, 'SKILL.md');
   const referenced = existsSync(skillFile) && read(skillFile).includes(file);
   check(referenced, `supporting file ${file} is referenced by ${skill}`);
+}
+
+// --- Free-edition shape --------------------------------------------------------
+// The free edition ships instructions only: no reference material and no helper
+// scripts. Every skill points at the maintained pack instead. This is what
+// keeps the free branch strictly below the paid one.
+const MAINTAINED_PACK = 'agensi.io/skills/arch-distro-design-iso-appliance-harness';
+
+for (const dir of skillDirs) {
+  for (const support of SUPPORT_DIRS) {
+    check(
+      !existsSync(path.join(SKILLS_DIR, dir, support)),
+      `skills/${dir} ships no ${support}/ in the free edition`
+    );
+  }
+  const skillFile = path.join(SKILLS_DIR, dir, 'SKILL.md');
+  const content = existsSync(skillFile) ? read(skillFile) : '';
+  check(content.includes(MAINTAINED_PACK), `skills/${dir} points at the maintained pack`);
 }
 
 // --- Manifest <-> disk consistency -------------------------------------------

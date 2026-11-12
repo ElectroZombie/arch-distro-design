@@ -6,7 +6,9 @@
 ## Current State
 
 - **This branch is the free edition.** All nine skills are here, in English,
-  frozen at the pre-2.0.0 line, plus the broken-reference corrections.
+  frozen at the pre-2.0.0 line, with the broken-reference corrections.
+- The free edition is the **method**: no `references/` and no `scripts/`.
+  Those twelve files ship with the maintained pack, and every skill says so.
 - The maintained edition lives on `official-agensi` and ships through Agensi.
 - The repository harness lives in `harness/`; the repository root is a clean
   product surface (`skills/`, `skills.sh.json`, `TIERS.md`, `README.md`,

@@ -96,7 +96,8 @@ echo "✅ QEMU environment ready"
 ## A. Live ISO validation
 
 > Both checklists — the 15 ISO checks and the 13 appliance checks — with the
-> exact command for each, are in `references/checklists.md`.
+> exact command for each, ship with the maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 ### A.1 Booting with `run_archiso`
 

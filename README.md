@@ -11,10 +11,11 @@
 - **Agensi.io** — the maintained pack, with 12 months of updates. *Creator: `electrozombie`*
 - **skills.sh** — indexed from this repository via `skills.sh.json`.
 
-> **This branch is the free edition.** It carries **all nine skills**, frozen at
-> the pre-2.0.0 line. It is a complete, working harness — but it is a
-> **snapshot**: it will not receive further updates. The maintained edition,
-> with every fix and every new pitfall entry, ships on
+> **This branch is the free edition.** It carries **all nine skills** — the
+> method: the decisions, the gates, the checklists and the scope boundaries —
+> frozen at the pre-2.0.0 line. It does **not** carry the long-form reference
+> material or the helper scripts: those ship with the maintained pack, along
+> with every fix and every new pitfall entry, on
 > [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness).
 > See [`TIERS.md`](./TIERS.md).
 
@@ -69,27 +70,20 @@ This harness exists to **prevent exactly those failure modes**. It encodes the d
 | **Validation** | `arch-hardware-handler` | Safe physical write and hardware compatibility gate. |
 | **Documentation** | `arch-archlinux-pitfalls` | Living catalog of real Arch/archiso errors. |
 
-### What ships with the skills
+### What the free edition gives you
 
-Every skill ships at least one supporting file — the long-form reference in
-`references/`, or an executable in `scripts/`. The agent has something to run
-instead of a script to invent.
+The **method**: all nine skills, complete in their decisions, gates, checklists
+and scope boundaries — the part that tells an agent *what* to do and *when* it
+is allowed to do it.
 
-| Skill | Ships | What it is |
-|---|---|---|
-| `arch-distro-design` | `references/brief-template.md` | the fill-in Brief, artifact contract and derived decisions |
-| `arch-iso-builder` | `references/profile-layout.md` | the profile tree, every variable, the overlay map |
-| `arch-appliance-img` | `references/partition-table.md` · `scripts/build.sh` | the EFI+SYS+DATA scheme · the `.img` builder CLI |
-| `arch-frozen-repo` | `references/repo-layout.md` | the repo layout, the consumer config, the pinning procedure |
-| `arch-payload-manifest` | `references/manifest-keys.md` · `scripts/payload.sh` · `scripts/load-manifest.sh` | every manifest key · the payload installer · the pure-bash parser |
-| `arch-desktop-layers` | `references/layer-matrix.md` | the package matrix of every layer |
-| `arch-qemu-validation` | `references/checklists.md` | the 15 ISO + 13 appliance checks, with commands |
-| `arch-hardware-handler` | `references/hardware-checklist.md` | the write guards and the compatibility matrix |
-| `arch-archlinux-pitfalls` | `references/symptom-index.md` | symptom → entry, to jump straight to the failure |
+| You get | You don't get |
+|---|---|
+| The nine `SKILL.md` files, each with its startup workflow, scope boundary, fail-fast verification, definition of done and handoff | The long-form reference material (`references/`) and the helper scripts (`scripts/`) |
 
-The live ISO carries the scripts at `/installer/`, so an operator can write an
-appliance or install a payload straight from the live session — see
-`arch-iso-builder` for how they get into the overlay.
+The reference material and the helper scripts ship with the **maintained pack**:
+[Arch Distro Design — ISO & Appliance Harness](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness)
+($25 for all nine, or $5 for one). Every skill in this branch names exactly
+what it is missing and where to get it.
 
 ---
 
@@ -150,10 +144,10 @@ they differ in **which version** you get and what comes with it afterwards.
 
 | Edition | Where | Price | Contents |
 | :--- | :--- | :--- | :--- |
-| **Free** | GitHub — [`github-free`](https://github.com/ElectroZombie/arch-distro-design/tree/github-free) branch | Free | **All nine skills**, frozen at the pre-2.0.0 snapshot |
+| **Free** | GitHub — [`github-free`](https://github.com/ElectroZombie/arch-distro-design/tree/github-free) branch | Free | **All nine skills** (the method), frozen at the pre-2.0.0 snapshot — without the reference material or the helper scripts |
 | **Free** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | Free | `arch-distro-design` (router) + `arch-archlinux-pitfalls` (catalog) |
 | **Individual** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | **$5** each | Any one of the seven execution skills |
-| **Full pack** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | **$25**, one-time | All nine skills, current version + 12 months of updates |
+| **Full pack** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | **$25**, one-time | All nine skills, current version, reference material, helper scripts + 12 months of updates |
 
 The free edition is the **whole harness**, not a teaser: the nine skills are
 there and they work. What it does not include is what comes *after* — the
@@ -285,10 +279,11 @@ Each skill folder follows the SKILL.md convention:
 
 ```text
 skills/<name>/
-├── SKILL.md              # required: the instructions
-├── references/           # optional: long-form reference material
-└── scripts/              # optional: executable helpers
+└── SKILL.md              # required: the instructions
 ```
+
+> The free edition ships the `SKILL.md` files only. The maintained pack adds
+> the optional `references/` and `scripts/` folders.
 
 ---
 

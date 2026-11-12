@@ -76,8 +76,9 @@ packages go in the live system versus the frozen repo, and runs `mkarchiso`.
 
 ### 2. Define the profile (`profiledef.sh`)
 
-> The complete profile tree, every `profiledef.sh` variable and the overlay
-> map are in `references/profile-layout.md`.
+> The complete profile tree, every `profiledef.sh` variable and the overlay map
+> ship with the maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 Critical variables that must **always** be declared:
 
@@ -176,30 +177,19 @@ Server = https://mirror.garr.it/archlinux/$repo/os/$arch
 
 #### The installer travels inside the ISO
 
-The other skills ship their scripts as **assets**, and the ISO carries them so
+The maintained pack ships three installer scripts, and the ISO carries them so
 an operator can write an appliance or install a payload straight from the live
 session, with no extra downloads:
 
-| Asset | Owner skill | Destination in the profile |
+| Script | Owner skill | Destination in the profile |
 |---|---|---|
-| `scripts/build.sh` | `arch-appliance-img` | `airootfs/installer/build.sh` |
-| `scripts/payload.sh` | `arch-payload-manifest` | `airootfs/installer/payload.sh` |
-| `scripts/load-manifest.sh` | `arch-payload-manifest` | `airootfs/installer/load-manifest.sh` |
+| `build.sh` | `arch-appliance-img` | `airootfs/installer/build.sh` |
+| `payload.sh` | `arch-payload-manifest` | `airootfs/installer/payload.sh` |
+| `load-manifest.sh` | `arch-payload-manifest` | `airootfs/installer/load-manifest.sh` |
 
-Copy them in while assembling the profile:
-
-```bash
-set -euo pipefail
-
-PROFILE="builder/arch-profile"
-
-install -Dm755 skills/arch-appliance-img/scripts/build.sh \
-  "$PROFILE/airootfs/installer/build.sh"
-install -Dm755 skills/arch-payload-manifest/scripts/payload.sh \
-  "$PROFILE/airootfs/installer/payload.sh"
-install -Dm755 skills/arch-payload-manifest/scripts/load-manifest.sh \
-  "$PROFILE/airootfs/installer/load-manifest.sh"
-```
+> 📦 The scripts themselves ship with the maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
+> Copy them into `airootfs/installer/` while assembling the profile.
 
 > **Why it matters:** `arch-qemu-validation` check #4 asserts that the ISO
 > carries the installer, and `arch-payload-manifest` expects
@@ -271,10 +261,16 @@ grep -q 'bootmodes=' "$PROFILE/profiledef.sh"
 # 4. The host mirrorlist is never inherited
 ! grep -qs 'Include *= */etc/pacman.d/mirrorlist' "$PROFILE/pacman.conf"
 
-# 5. The installer assets are in the overlay (QEMU check #4 depends on it)
-test -f "$PROFILE/airootfs/installer/build.sh"
-test -f "$PROFILE/airootfs/installer/payload.sh"
-test -f "$PROFILE/airootfs/installer/load-manifest.sh"
+# 5. The installer is in the overlay (QEMU check #4 depends on it).
+#    The scripts ship with the maintained pack; this free edition
+#    documents the contract but does not carry them.
+if [[ -d "$PROFILE/airootfs/installer" ]]; then
+  echo "  installer present in the overlay"
+else
+  echo "  ⚠️  no installer in the overlay — QEMU check #4 will fail."
+  echo "     Add build.sh, payload.sh and load-manifest.sh to"
+  echo "     $PROFILE/airootfs/installer/ (shipped with the maintained pack)."
+fi
 
 # 6. Work dir and out dir exist before mkarchiso
 mkdir -p /var/tmp/archiso-work "$PWD/out"

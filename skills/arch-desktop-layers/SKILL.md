@@ -47,7 +47,8 @@ heavier.
 ## Available desktop layers
 
 > The full package matrix of every layer, with the session starter and the
-> panel configuration, is in `references/layer-matrix.md`.
+> panel configuration, ships with the maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 ### L0 — Console-only (no graphical interface)
 

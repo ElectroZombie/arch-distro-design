@@ -72,6 +72,33 @@ skills with the shared harness contract, plus the repository harness.
 - `harness/init.sh` now resolves the repository root itself, so it runs the
   same from any working directory.
 
+## [1.4.0] — 2026-11-12
+
+The free edition becomes **strictly below** the paid one: the method, without
+the toolkit.
+
+### Removed
+- **The reference material** (`references/`, 9 files) and **the helper
+  scripts** (`scripts/`, 3 files) — the long-form Brief template, the profile
+  layout, the partition scheme, the repo layout, the manifest keys, the package
+  matrix, the full checklists, the symptom index, the `.img` builder CLI, the
+  payload installer and the manifest parser. They ship with the maintained
+  pack.
+
+### Changed
+- Every skill now names exactly what it is missing and points at the
+  maintained pack, instead of referring to a file it no longer carries.
+- `arch-iso-builder`: the verification no longer fails when the installer is
+  absent — it warns, because the installer now ships with the paid pack.
+- `arch-payload-manifest`: the verification is self-contained (it checks the
+  manifest format directly instead of sourcing the parser), and the parser
+  source is no longer inlined in the skill.
+- `README.md` and `TIERS.md` describe the free edition as *the method*, not as
+  the whole product.
+- The validator now **asserts the free-edition shape**: no skill may ship a
+  `references/` or `scripts/` folder, and every skill must point at the
+  maintained pack.
+
 ## [1.3.3] — 2026-11-12
 
 ### Fixed

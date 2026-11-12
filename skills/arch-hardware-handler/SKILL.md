@@ -260,8 +260,9 @@ Record the evidence: the **command** you ran and its **output** — the `✅ Tar
 
 ## Hardware operations checklist (paste in the work area)
 
-> The checklist, the three write guards and the compatibility matrix are in
-> `references/hardware-checklist.md`.
+> The checklist, the three write guards and the compatibility matrix ship with
+> the maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 ```text
 === ARCH HARDWARE CHECKLIST ===

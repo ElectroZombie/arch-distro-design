@@ -75,8 +75,9 @@ Before writing to any physical disk or creating .imgs, go through the
 
 ## Partitioning parameters (size rule)
 
-> The full scheme, the size bands and the exact `parted` sequence are in
-> `references/partition-table.md`.
+> The full scheme, the size bands and the exact `parted` sequence ship with
+> the maintained pack:
+> <https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 | Disk size | Partition | Size | Type | Mount |
 |---|---|---|---|---|
@@ -103,9 +104,10 @@ Before writing to any physical disk or creating .imgs, go through the
 
 ### 1. `build.sh` CLI (mandatory parameters)
 
-The script ships with this skill — `scripts/build.sh` — and the
-ISO carries it at `/installer/build.sh`, so the operator can build the `.img`
-straight from the live session.
+The `.img` builder is a script the ISO carries at `/installer/build.sh`, so the
+operator can build the appliance straight from the live session. The script
+itself ships with the maintained pack:
+<https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness>
 
 ```
 Usage: build.sh --disk <PATH> --profile <PROFILE> --yes --dry-run
@@ -125,11 +127,11 @@ Flags:
 - `--profile` exists and contains `profiledef.sh`, `packages.x86_64`, `pacman.conf`
 - `--yes` or double interaction: "Write .img of <size>? Write Y/N"
 
-The asset implements exactly these steps and guards. Install it into the
-project (or into the ISO overlay, see `arch-iso-builder`):
+The shipped script implements exactly these steps and guards. Install it into
+the project (or into the ISO overlay, see `arch-iso-builder`) and **dry-run it
+before touching any disk**:
 
 ```bash
-install -Dm755 skills/arch-appliance-img/scripts/build.sh ./build.sh
 ./build.sh --disk /path/to/appliance.img --profile builder/arch-profile --dry-run
 ```
 
