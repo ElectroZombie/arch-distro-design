@@ -33,15 +33,6 @@ skills with the shared harness contract, plus the repository harness.
 - `TIERS.md` — the free vs paid edition comparison, including the Agensi
   price ladder: the router and the pitfalls catalog are **free**, the other
   seven skills are **$5** each, and the complete set is **$25**.
-- **Scripts that ship with the skills** — the pack documented a CLI and an
-  artifact it did not ship:
-  - `skills/arch-appliance-img/assets/build.sh` — the `.img` builder CLI
-    (`--disk`, `--profile`, `--yes`, `--dry-run`) with the documented guards.
-  - `skills/arch-payload-manifest/assets/payload.sh` — materializes a payload,
-    writes its unit, enables the service, waits for the healthcheck.
-  - `skills/arch-payload-manifest/assets/load-manifest.sh` — the pure-bash
-    manifest parser.
-  - `arch-iso-builder` copies all three into the ISO overlay at `/installer/`.
 
 ### Changed
 - **All nine skills now follow the same harness contract.** Each `SKILL.md` gained
@@ -67,6 +58,37 @@ skills with the shared harness contract, plus the repository harness.
 - The author line carries both handles: Agensi and GitHub.
 
 ### Fixed
+- Removed references to files that do not exist in the pack: `docs/09`,
+  `docs/04` and `docs/08-LECCIONES-APRENDIDAS.md`. The canonical state files
+  are now `brief.md` and `artifact-contract.md` at the project root, and the
+  hardware trail lives in `hardware-log.txt`.
+- Replaced the `replace with your listing URL` placeholders in `README.md` with
+  the real Agensi listing.
+
+### Moved
+- **The repository harness left the repository root** and now lives in
+  `harness/`. The root is now a clean product surface — `skills/`,
+  `skills.sh.json`, `TIERS.md`, `README.md`, `CHANGELOG.md`, `LICENSE`.
+- `harness/init.sh` now resolves the repository root itself, so it runs the
+  same from any working directory.
+
+## [1.3.1] — 2026-11-11
+
+Integration fixes: the seams **between** the skills, closed without changing
+what any skill does.
+
+### Added
+- **Scripts that ship with the skills** — the pack documented a CLI and an
+  artifact it did not ship:
+  - `skills/arch-appliance-img/assets/build.sh` — the `.img` builder CLI
+    (`--disk`, `--profile`, `--yes`, `--dry-run`) with the documented guards.
+  - `skills/arch-payload-manifest/assets/payload.sh` — materializes a payload,
+    writes its unit, enables the service, waits for the healthcheck.
+  - `skills/arch-payload-manifest/assets/load-manifest.sh` — the pure-bash
+    manifest parser.
+  - `arch-iso-builder` copies all three into the ISO overlay at `/installer/`.
+
+### Fixed
 - **The installer finally has a producer.** `arch-qemu-validation` check #4
   asserted that the ISO carries the installer, and `arch-payload-manifest`
   expected `installer/payload.sh` — but no skill created either, so an agent
@@ -88,19 +110,11 @@ skills with the shared harness contract, plus the repository harness.
   (desktop before ISO, payload after the appliance, QEMU before hardware).
 - `builder/repo-packages.txt` now has a producer: `arch-iso-builder` writes
   it and `arch-frozen-repo` consumes it.
-- Removed references to files that do not exist in the pack: `docs/09`,
-  `docs/04` and `docs/08-LECCIONES-APRENDIDAS.md`. The canonical state files
-  are now `brief.md` and `artifact-contract.md` at the project root, and the
-  hardware trail lives in `hardware-log.txt`.
-- Replaced the `replace with your listing URL` placeholders in `README.md` with
-  the real Agensi listing.
 
-### Moved
-- **The repository harness left the repository root** and now lives in
-  `harness/`. The root is now a clean product surface — `skills/`,
-  `skills.sh.json`, `TIERS.md`, `README.md`, `CHANGELOG.md`, `LICENSE`.
-- `harness/init.sh` now resolves the repository root itself, so it runs the
-  same from any working directory.
+### Changed
+- `harness/scripts/validate-pack.mjs` now also resolves **asset references**
+  and **cross-skill references**, so a skill can no longer point at a sibling
+  or a script that does not exist. Assertions grew from 212 to 292.
 
 ## [1.2.0] — 2026-11-11
 
