@@ -244,6 +244,7 @@ arch-distro-design/
 │   └── scripts/
 │       └── validate-pack.mjs   # Dependency-free structural checks
 ├── skills.sh.json          # Grouping metadata (skills.sh only; ignored by Agensi)
+├── AGENTS.md               # Pointer to harness/AGENTS.md for auto-loading agents
 ├── TIERS.md                # Free vs paid editions
 ├── CHANGELOG.md
 ├── README.md
