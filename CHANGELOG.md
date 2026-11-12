@@ -72,6 +72,28 @@ skills with the shared harness contract, plus the repository harness.
 - `harness/init.sh` now resolves the repository root itself, so it runs the
   same from any working directory.
 
+## [1.5.0] — 2026-11-12
+
+The public branch carries **the product only**.
+
+### Removed
+- **The repository harness** (`harness/`) — the development infrastructure:
+  the agent instructions, the feature tracker, the session log, the handoff
+  template, the verification entrypoint and the packaging script. That
+  tooling lives with the project that maintains the pack; a published
+  distribution does not need it.
+- **`.gitignore`** — the published branch tracks only the product files, so
+  there is nothing to ignore.
+
+### Changed
+- `AGENTS.md` is no longer a pointer to `harness/AGENTS.md`. It is now a
+  self-contained guide: what is in the pack, how to install it, which skill to
+  start with, the chain of handoffs, the six-section contract and the rules.
+- `README.md` drops the **Repository Harness** section and the harness entries
+  in the project tree. The **Skill harness contract** stays — it describes the
+  skills, not the tooling.
+- `TIERS.md` no longer mentions the repository harness.
+
 ## [1.4.0] — 2026-11-12
 
 The free edition becomes **strictly below** the paid one: the method, without

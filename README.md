@@ -200,32 +200,7 @@ No artifact is built without the user having explicitly decided:
 
 ---
 
-## Repository Harness
-
-This repository is itself operated as a harness. Anyone — human or agent — who
-changes the pack follows the same five-subsystem contract, so work survives
-across sessions and never drifts out of scope. The harness lives in
-`harness/`, keeping the repository root a clean product surface.
-
-| Subsystem | Artifact | Purpose |
-| :--- | :--- | :--- |
-| **Instructions** | [`harness/AGENTS.md`](./harness/AGENTS.md) | Startup path, repo invariants, definition of done. |
-| **State** | [`harness/feature_list.json`](./harness/feature_list.json), [`harness/progress.md`](./harness/progress.md) | Current feature, status, evidence, next step. |
-| **Verification** | [`harness/init.sh`](./harness/init.sh), [`harness/scripts/validate-pack.mjs`](./harness/scripts/validate-pack.mjs) | Checks that must pass before claiming done. |
-| **Scope** | `harness/feature_list.json` dependencies + `harness/AGENTS.md` rules | One feature at a time; no unrequested scope. |
-| **Lifecycle** | [`harness/session-handoff.md`](./harness/session-handoff.md) | End-of-session routine that leaves the repo restartable. |
-
-Run the full verification before and after any change:
-
-```bash
-./harness/init.sh
-```
-
-`harness/init.sh` fails fast (`set -e`) and checks frontmatter, skill naming,
-`skills.sh.json` consistency, English-only content, README coverage, and the
-skill contract below — 212 assertions, zero external dependencies.
-
-### Skill harness contract
+## Skill harness contract
 
 Every one of the nine skills exposes the same six sections, in the same order,
 so an agent enters, scopes, verifies, closes and resumes them identically:
@@ -239,8 +214,8 @@ so an agent enters, scopes, verifies, closes and resumes them identically:
 | `## State & Evidence` | Where the state lives and what evidence to record. |
 | `## Handoff` | Which skill runs next, and when. |
 
-`./harness/init.sh` fails if a skill is missing one of them, if they are out of
-order, or if the `Verification` block is not a fail-fast script.
+Every `Verification` block is a bash script that fails fast: it exits non-zero
+on the first problem and prints a `✅` marker when the gate passes.
 
 ---
 
@@ -258,17 +233,8 @@ arch-distro-design/
 │   ├── arch-qemu-validation/SKILL.md
 │   ├── arch-hardware-handler/SKILL.md
 │   └── arch-archlinux-pitfalls/SKILL.md
-├── harness/
-│   ├── AGENTS.md               # Agent instructions, invariants, definition of done
-│   ├── feature_list.json       # Feature state tracker (source of truth)
-│   ├── progress.md             # Session continuity log
-│   ├── session-handoff.md      # Handoff template for multi-session work
-│   ├── init.sh                 # Startup and verification entrypoint
-│   └── scripts/
-│       ├── build-packages.mjs  # Builds the Agensi upload packages
-│       └── validate-pack.mjs   # Dependency-free structural checks
 ├── skills.sh.json          # Grouping metadata (skills.sh only; ignored by Agensi)
-├── AGENTS.md               # Pointer to harness/AGENTS.md for auto-loading agents
+├── AGENTS.md               # How to use this pack
 ├── TIERS.md                # Free vs paid editions
 ├── CHANGELOG.md
 ├── README.md

@@ -48,9 +48,6 @@ and handoff.
 | Validation | `arch-qemu-validation`, `arch-hardware-handler` |
 | Memory | `arch-archlinux-pitfalls` |
 
-Plus the repository harness: `harness/AGENTS.md`, the feature tracker, the
-fail-fast validator and `harness/init.sh`.
-
 ## What only the paid edition adds
 
 - **The reference material** — the long-form `references/` of every skill:
