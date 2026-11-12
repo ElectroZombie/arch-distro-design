@@ -30,7 +30,9 @@ skills with the shared harness contract, plus the repository harness.
   (`set -e`) and prints the next steps.
 - `README.md` — new **Repository Harness** section documenting the five
   subsystems, and an updated project structure tree.
-- `TIERS.md` — the free vs paid edition comparison.
+- `TIERS.md` — the free vs paid edition comparison, including the Agensi
+  price ladder: the router and the pitfalls catalog are **free**, the other
+  seven skills are **$5** each, and the complete set is **$25**.
 
 ### Changed
 - **All nine skills now follow the same harness contract.** Each `SKILL.md` gained

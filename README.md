@@ -97,7 +97,8 @@ npx skills add electrozombie/arch-distro-design
 
 ### Option C — Via Agensi.io *(recommended if you want updates)*
 
-The maintained pack, with 12 months of updates included — **$10**, one-time:
+The maintained pack, with 12 months of updates included — **$25**, one-time
+(or a single skill for **$5**; the router and the pitfalls catalog are **free**):
 [Arch Distro Design — ISO & Appliance Harness](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness).
 
 ---
@@ -128,12 +129,18 @@ they differ in **which version** you get and what comes with it afterwards.
 | Edition | Where | Price | Contents |
 | :--- | :--- | :--- | :--- |
 | **Free** | GitHub — [`github-free`](https://github.com/ElectroZombie/arch-distro-design/tree/github-free) branch | Free | **All nine skills**, frozen at the pre-2.0.0 snapshot |
-| **Full pack** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | **$10**, one-time | All nine skills, current version + 12 months of updates |
+| **Free** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | Free | `arch-distro-design` (router) + `arch-archlinux-pitfalls` (catalog) |
+| **Individual** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | **$5** each | Any one of the seven execution skills |
+| **Full pack** | [Agensi.io](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) | **$25**, one-time | All nine skills, current version + 12 months of updates |
 
 The free edition is the **whole harness**, not a teaser: the nine skills are
 there and they work. What it does not include is what comes *after* — the
 2.0.0 line, and every fix, pitfall entry and archiso-compatibility update
 that lands with each release.
+
+On Agensi the harness splits in two: the **advice** half (the router and the
+pitfalls catalog) is free, the **execution** half (build, freeze, package,
+validate, flash) is $5 a skill — or the whole set for $25.
 
 See [`TIERS.md`](./TIERS.md) for the full comparison of what each edition
 includes and what the updates bring.

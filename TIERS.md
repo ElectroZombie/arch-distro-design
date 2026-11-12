@@ -11,13 +11,27 @@ they differ in **which version** you get and what comes with it afterwards.
 | | **Free** | **Full pack** |
 | :--- | :--- | :--- |
 | **Where** | GitHub — [`github-free`](https://github.com/ElectroZombie/arch-distro-design/tree/github-free) branch | Agensi.io — [listing](https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness) |
-| **Price** | Free | **$10** one-time |
+| **Price** | Free | **$25** one-time (or $5 per skill) |
 | **Skills included** | **All nine** | **All nine** |
 | **Version** | The nine skills frozen at the **pre-2.0.0** snapshot (with the broken-reference corrections applied) | **2.0.0** and every release after it |
 | **Updates** | None — the snapshot is final | 12 months included; renewal from month 13 |
 | **Pitfalls catalog** | As of the snapshot | Grows with every real failure |
 | **Security & compatibility fixes** | As of the snapshot | Land with every update |
 | **License** | MIT | MIT, no redistribution of the pack as a standalone or competing product |
+
+## The price ladder on Agensi
+
+The harness splits into an **advice** half and an **execution** half. The
+advice half is free; the execution half is what you pay for.
+
+| You want | You pay | You get |
+| :--- | :--- | :--- |
+| The design discipline | **Free** | `arch-distro-design` (router) + `arch-archlinux-pitfalls` (catalog) |
+| One execution skill | **$5** | ISO builder, `.img` builder, frozen repo, payload manifest, desktop layers, QEMU gate or hardware gate |
+| Everything | **$25** | All nine skills, the current version, and 12 months of updates |
+
+The seven paid skills cost **$35** bought one at a time, so the set is the
+better deal the moment you need three of them.
 
 ## What the free edition includes
 

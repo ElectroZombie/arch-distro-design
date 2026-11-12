@@ -12,7 +12,8 @@
   product surface (`skills/`, `skills.sh.json`, `TIERS.md`, `README.md`,
   `CHANGELOG.md`, `LICENSE`).
 - The live Agensi listing is
-  https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness ($10).
+  https://www.agensi.io/skills/arch-distro-design-iso-appliance-harness
+  (set $25; router + pitfalls free; other seven $5 each).
 - All nine skills carry the same harness contract: `## Startup Workflow`,
   `## Scope`, `## Verification`, `## Definition of Done`, `## State & Evidence`
   and `## Handoff`, in that order.
